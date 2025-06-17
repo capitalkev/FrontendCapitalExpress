@@ -69,7 +69,6 @@ export default function App() {
     setIsSubmitting(true);
     setStatusMessage({ type: 'info', text: 'Registrando operación, por favor espera...' });
 
-    // 1. Preparamos el objeto FormData para enviar archivos y datos.
     const data = new FormData();
 
     const metadata = {
@@ -84,7 +83,6 @@ export default function App() {
     };
     data.append('metadata', JSON.stringify(metadata));
 
-    // 3. Añadimos los archivos. Las claves ('xml_files', 'pdf_files') deben coincidir con el backend.
     xmlFiles.forEach(file => data.append('xml_files', file));
     pdfFiles.forEach(file => data.append('pdf_files', file));
     respaldoFiles.forEach(file => data.append('respaldo_files', file));
