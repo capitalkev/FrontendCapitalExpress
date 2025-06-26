@@ -25,10 +25,11 @@ export default function NewOperationPage() {
     { id: Date.now(), banco: '', tipo: 'Corriente', numero: '', moneda: 'PEN' }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState({ type: '', text: '' }); // Inicializado como objeto
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
+    // Permitir puntos decimales y números, pero limpiar valores incorrectos
     const numericValue = value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
     setFormData(prev => ({ ...prev, [name]: numericValue }));
   }, []);
@@ -65,7 +66,7 @@ export default function NewOperationPage() {
     setRespaldoFiles([]);
     setSolicitarAdelanto(false);
     setPorcentajeAdelanto("");
-    setCuentas([{ id: 1, banco: '', tipo: 'Corriente', numero: '', moneda: 'PEN' }]);
+    setCuentas([{ id: Date.now(), banco: '', tipo: 'Corriente', numero: '', moneda: 'PEN' }]);
   }, []);
 
   const isFormValid = formData.tasaOperacion && formData.comision &&
@@ -84,8 +85,9 @@ export default function NewOperationPage() {
 
     const data = new FormData();
     const metadata = {
-      tasaOperacion: formData.tasaOperacion,
-      comision: formData.comision,
+      user_email: "kevin.tupac@capitalexpress.cl",
+      tasaOperacion: parseFloat(formData.tasaOperacion),
+      comision: parseFloat(formData.comision),
       mailVerificacion: formData.mailVerificacion,
       solicitudAdelanto: { solicita: solicitarAdelanto, porcentaje: solicitarAdelanto ? parseFloat(porcentajeAdelanto) : 0 },
       cuentasDesembolso: cuentas.filter(c => c.banco && c.numero),
@@ -96,22 +98,37 @@ export default function NewOperationPage() {
     respaldoFiles.forEach(file => data.append('respaldo_files', file));
 
     try {
-      
       const response = await fetch('/api/v1/operaciones/', {
         method: 'POST',
         body: data,
+        // No incluyas 'Content-Type': 'multipart/form-data', el navegador lo hace por ti con el boundary correcto cuando usas FormData.
       });
 
-      const result = await response.json();
-
+      // --- INICIO DE LA LÓGICA CORREGIDA ---
       if (!response.ok) {
-        throw new Error(result.detail || 'Ocurrió un error desconocido.');
+        // Si la respuesta es un error (4xx o 5xx), intentamos obtener un mensaje útil.
+        let errorMessage;
+        try {
+          // Intentamos leer el cuerpo del error como JSON (lo que FastAPI debería enviar)
+          const errorResult = await response.json();
+          // Usamos el 'detail' que FastAPI suele enviar, o convertimos el objeto a texto.
+          errorMessage = errorResult.detail || JSON.stringify(errorResult);
+        } catch (jsonError) {
+          // Si falla, el error no era JSON (podría ser HTML de un error 500). Leemos como texto.
+          errorMessage = await response.text();
+        }
+        // Lanzamos un error con el mensaje limpio para que el catch principal lo capture.
+        throw new Error(errorMessage);
       }
+      // --- FIN DE LA LÓGICA CORREGIDA ---
 
-      setStatusMessage({ type: 'success', text: result.message });
+      // Si la respuesta fue 'ok', procedemos como antes
+      const result = await response.json();
+      setStatusMessage({ type: 'success', text: result.message || "Operación registrada con éxito." });
       resetForm();
 
     } catch (error) {
+      // Ahora `error.message` contendrá un texto descriptivo
       setStatusMessage({ type: 'error', text: `Error: ${error.message}` });
     } finally {
       setIsSubmitting(false);
@@ -129,8 +146,9 @@ export default function NewOperationPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-8">
+            {/* El resto de tu JSX no necesita cambios, aquí un extracto como referencia */}
             <FormSection number="1" title="Datos de la Operación">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <InputGroup label="Tasa de Operación *" htmlFor="tasaOperacion">
                   <Input id="tasaOperacion" name="tasaOperacion" type="text" placeholder="Ej: 2.5"
                     value={formData.tasaOperacion} onChange={handleInputChange}
@@ -143,7 +161,8 @@ export default function NewOperationPage() {
                 </InputGroup>
               </div>
             </FormSection>
-
+            
+            {/* ... El resto de tus FormSection (2, 3 y 4) van aquí sin cambios ... */}
             <FormSection number="2" title="Documentos de la Factura">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -244,8 +263,8 @@ export default function NewOperationPage() {
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="w-full sm:w-auto">
-                {statusMessage && (
-                    <p className={`text-xs ${statusMessage.type === 'error' ? 'text-red-500' : statusMessage.type === 'success' ? 'text-green-500' : 'text-gray-500'}`}>
+                {statusMessage.text && (
+                    <p className={`text-sm ${statusMessage.type === 'error' ? 'text-red-600 font-semibold' : statusMessage.type === 'success' ? 'text-green-600' : 'text-gray-500'}`}>
                         {statusMessage.text}
                     </p>
                 )}
