@@ -31,13 +31,11 @@ export default function LoginPage() {
       const user = result.user;
 
       // --- ¡AQUÍ ESTÁ LA VALIDACIÓN DEL DOMINIO! ---
-      if (user.email && user.email.endsWith('@capitalexpress.cl')) {
-        // El usuario es válido, el observer en App.jsx se encargará de redirigir.
+      if (user.email && (user.email.endsWith('@capitalexpress.cl') || user.email.endsWith('@capitalexpress.pe'))){
         console.log("Inicio de sesión exitoso para:", user.email);
       } else {
-        // Si el dominio no es correcto, cerramos la sesión inmediatamente.
         await signOut(auth);
-        setError('Acceso denegado. Solo se permiten correos del dominio @capitalexpress.cl.');
+        setError('Acceso denegado. Solo se permiten correos del dominio @capitalexpress.pe.');
       }
     } catch (error) {
       // Manejo de otros errores de Firebase (ej. pop-up cerrado por el usuario)
@@ -66,7 +64,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-gray-800">Acceso al Portal</h1>
           <p className="text-sm text-gray-500 mt-2">
             Inicia sesión con tu correo{" "}
-            <span className="text-[#f24123] font-medium">@capitalexpress.cl</span>
+            <span className="text-[#f24123] font-medium">@capitalexpress.pe</span>
           </p>
         </div>
 
