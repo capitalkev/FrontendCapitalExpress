@@ -69,7 +69,7 @@ export default function App() {
           path="/"
           element={
             <ProtectedRoute user={user}>
-              <NewOperationPage />
+              <NewOperationPage user={user}/>
             </ProtectedRoute>
           }
         />

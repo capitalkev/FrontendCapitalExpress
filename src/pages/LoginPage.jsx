@@ -30,7 +30,6 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // --- ¡AQUÍ ESTÁ LA VALIDACIÓN DEL DOMINIO! ---
       if (user.email && (user.email.endsWith('@capitalexpress.cl') || user.email.endsWith('@capitalexpress.pe'))){
         console.log("Inicio de sesión exitoso para:", user.email);
       } else {
@@ -61,7 +60,7 @@ export default function LoginPage() {
 
         {/* Título */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800">Acceso al Portal</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Acceso al Portal de Verificaciones</h1>
           <p className="text-sm text-gray-500 mt-2">
             Inicia sesión con tu correo{" "}
             <span className="text-[#f24123] font-medium">@capitalexpress.pe</span>

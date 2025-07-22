@@ -21,7 +21,7 @@ import { FileListItem } from "../components/FileListItem";
 import { FormSection } from "../components/FormSection";
 import { ProcessingModal } from '../components/ProcessingModal';
 
-export default function NewOperationPage() {
+export default function NewOperationPage({ user }) {
   // --- Estados del Formulario ---
   const [formData, setFormData] = useState({
     tasaOperacion: "",
@@ -37,9 +37,9 @@ export default function NewOperationPage() {
   // El estado de la cuenta ahora es un solo objeto
   const [cuenta, setCuenta] = useState({
     banco: "",
-    tipo: "Corriente",
+    tipo: "",
     numero: "",
-    moneda: "PEN"
+    moneda: ""
   });
 
   // --- Estado para el modal de procesamiento ---
@@ -82,7 +82,6 @@ export default function NewOperationPage() {
     if (setter) setter((prev) => prev.filter((f) => f.name !== fileName));
   }, []);
 
-  // Función simplificada para manejar el único objeto de cuenta
   const handleCuentaChange = useCallback((field, value) => {
     setCuenta((prevCuenta) => ({
       ...prevCuenta,
@@ -97,7 +96,7 @@ export default function NewOperationPage() {
     setRespaldoFiles([]);
     setSolicitarAdelanto(false);
     setPorcentajeAdelanto("");
-    setCuenta({ banco: "", tipo: "Corriente", numero: "", moneda: "PEN" });
+    setCuenta({ banco: "", tipo: "", numero: "", moneda: "" });
     setIsModalOpen(false);
     setProcessState({ isLoading: false, error: null, successData: null });
   }, []);
@@ -112,7 +111,7 @@ export default function NewOperationPage() {
     const cuentasDesembolso = cuenta.banco && cuenta.numero ? [cuenta] : [];
 
     const metadata = {
-        user_email: "kevin.tupac@capitalexpress.cl",
+        user_email: user.email,
         tasaOperacion: parseFloat(formData.tasaOperacion),
         comision: parseFloat(formData.comision),
         mailVerificacion: formData.mailVerificacion,
@@ -125,7 +124,7 @@ export default function NewOperationPage() {
     respaldoFiles.forEach((file) => data.append("respaldo_files", file));
 
     try {
-        const response = await fetch(`http://localhost:8000/submit-operation`, {
+        const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/submit-operation`, {
             method: "POST",
             body: data,
         });
@@ -216,32 +215,34 @@ export default function NewOperationPage() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-
-                    <InputGroup label="Mail de Verificación Adicional [Separar por ';']" htmlFor="mailVerificacion" optional>
-                      <Input id="mailVerificacion" name="mailVerificacion" type="email" placeholder="Ej: pagos1@deudor.com;pagos2@deudor.com" value={formData.mailVerificacion} onChange={handleInputChange} icon={<Icon name="Mail" className="text-muted" />}/>
+                    <InputGroup label="Mail de Verificación Adicional [;]" htmlFor="mailVerificacion" optional>
+                      <Input id="mailVerificacion" name="mailVerificacion" placeholder="Ej: pagos1@deudor.com;pagos2@deudor.com" value={formData.mailVerificacion} onChange={handleInputChange} icon={<Icon name="Mail" className="text-muted" />}/>
                     </InputGroup>
-
                     <div>
                       <h4 className="text-base font-medium text-gray-600 mb-2">Cuenta de Desembolso</h4>
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-9 gap-2 items-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                           <div className="sm:col-span-3">
                             <select value={cuenta.banco} onChange={(e) => handleCuentaChange("banco", e.target.value)} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
                               <option value="">Seleccione Banco...</option>
                               {bancosPeruanos.map((b) => <option key={b} value={b}>{b}</option>)}
                             </select>
                           </div>
-                          <div className="sm:col-span-2">
+                          <div className="sm:col-span-3">
                             <select value={cuenta.tipo} onChange={(e) => handleCuentaChange("tipo", e.target.value)} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                              <option>Corriente</option><option>Ahorros</option>
+                              <option value="">Seleccione Cuenta</option>
+                              <option>Corriente</option>
+                              <option>Ahorros</option>
                             </select>
                           </div>
-                          <div className="sm:col-span-2">
+                          <div className="sm:col-span-3">
                             <select value={cuenta.moneda} onChange={(e) => handleCuentaChange("moneda", e.target.value)} className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                              <option>PEN</option><option>USD</option>
+                              <option value="">Moneda</option>
+                              <option>PEN</option>
+                              <option>USD</option>
                             </select>
                           </div>
-                          <div className="sm:col-span-2">
+                          <div className="sm:col-span-3">
                             <Input placeholder="Número de Cuenta" value={cuenta.numero} onChange={(e) => handleCuentaChange("numero", e.target.value.replace(/[^0-9-]/g, ""))}/>
                           </div>
                         </div>
