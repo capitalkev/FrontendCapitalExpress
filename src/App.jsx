@@ -1,29 +1,26 @@
-// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './firebase'; // Importamos desde nuestro archivo de configuración
+import { auth } from './firebase';
 
-// Importamos las páginas
 import NewOperationPage from './pages/NewOperationPage';
-import LoginPage from './pages/LoginPage'; // Importamos la página de login
-import { Button } from './components/ui/Button';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
 import { Icon } from './components/Icon';
 
-// Un componente simple para mostrar mientras se verifica la sesión
 const LoadingSpinner = () => (
-  <div className="min-h-screen flex items-center justify-center bg-neutral">
-    <Icon name="Loader" className="animate-spin text-blue-600" size={48} />
-  </div>
+    <div className="min-h-screen flex items-center justify-center bg-neutral">
+      <Icon name="Loader" className="animate-spin text-blue-600" size={48} />
+    </div>
 );
 
-// Un componente para las rutas protegidas
+// --- ✨ PROTECTEDROUTE SIMPLIFICADO ---
+// Ahora solo se encarga de verificar si el usuario existe.
 const ProtectedRoute = ({ user, children }) => {
-  if (!user) {
-    // Si no hay usuario, redirige a la página de login
-    return <Navigate to="/login" />;
-  }
-  return children;
+    if (!user) {
+      return <Navigate to="/login" />;
+    }
+    return children;
 };
 
 export default function App() {
@@ -31,13 +28,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChanged es un "observador" que se ejecuta cada vez que el estado de auth cambia.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
-
-    // Limpiamos el observador cuando el componente se desmonta
     return () => unsubscribe();
   }, []);
 
@@ -55,25 +49,30 @@ export default function App() {
 
   return (
     <Router>
-      {user && (
-        <header className="absolute top-0 right-0 p-4">
-          <Button onClick={handleLogout} variant="outline" size="sm">
-            <Icon name="LogOut" className="mr-2" size={14} />
-            Cerrar Sesión
-          </Button>
-        </header>
-      )}
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/login" element={user ? <Navigate to="/Dashboard" /> : <LoginPage />} />
+        
+        {/* --- ✨ RUTAS CORREGIDAS --- */}
+        {/* Ahora pasamos las props directamente a los componentes de la página */}
         <Route
-          path="/"
+          path="/Dashboard"
           element={
             <ProtectedRoute user={user}>
-              <NewOperationPage user={user}/>
+              <Dashboard user={user} handleLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
-        {/* Puedes agregar más rutas protegidas aquí */}
+        
+        <Route
+          path="/new-operation"
+          element={
+            <ProtectedRoute user={user}>
+              <NewOperationPage user={user} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

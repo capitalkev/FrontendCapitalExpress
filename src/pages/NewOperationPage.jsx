@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { Link } from 'react-router-dom';
 // Asegúrate de que las rutas a tus componentes sean correctas
 import { Icon } from "../components/Icon";
 import {
@@ -161,6 +161,10 @@ export default function NewOperationPage({ user }) {
         />
         <Card className="w-full max-w-3xl mx-auto">
            <CardHeader>
+            <Link to="/Dashboard" className="text-sm text-blue-600 hover:underline flex items-center gap-1.5 mb-4">
+                <Icon name="ArrowLeft" size={14} />
+                Volver al Dashboard
+             </Link>
              <CardTitle iconName="FilePlus">Registro de Nueva Operación</CardTitle>
              <CardDescription>Completa todos los campos para registrar una nueva operación de factoring.</CardDescription>
            </CardHeader>
