@@ -1,13 +1,10 @@
-// src/pages/LoginPage.jsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
-import { Icon } from '../components/Icon'; 
-// Asegúrate de que la ruta a tu logo sea correcta. Si lo pusiste en la carpeta `public`, la ruta sería '/logo.png'.
-import logo from '/logo.png'; 
+import { Icon } from '../components/Icon';
+import logo from '/logo.png';
 
-// Componente para mostrar mensajes de error con animación
 const ErrorMessage = ({ message }) => (
   <motion.div
     initial={{ opacity: 0, y: -10 }}
@@ -29,17 +26,20 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      
+      const allowedDomains = ['@capitalexpress.cl', '@capitalexpress.pe'];
+      const userDomain = user.email.substring(user.email.lastIndexOf("@"));
 
-      if (user.email && (user.email.endsWith('@capitalexpress.cl') || user.email.endsWith('@capitalexpress.pe'))){
-        console.log("Inicio de sesión exitoso para:", user.email);
-      } else {
+      if (!allowedDomains.includes(userDomain)) {
         await signOut(auth);
-        setError('Acceso denegado. Solo se permiten correos del dominio @capitalexpress.pe.');
+        setError('Acceso denegado. Solo se permiten correos de los dominios permitidos.');
       }
+      // La redirección y el manejo de roles ahora se harán en App.jsx
     } catch (error) {
-      // Manejo de otros errores de Firebase (ej. pop-up cerrado por el usuario)
       console.error("Error durante el inicio de sesión con Google:", error);
-      setError('Falló la autenticación con Google. Por favor, intenta de nuevo.');
+      if (error.code !== 'auth/popup-closed-by-user') {
+        setError('Falló la autenticación con Google. Por favor, intenta de nuevo.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -53,24 +53,20 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-white shadow-xl border border-gray-200 rounded-2xl p-8 space-y-6"
       >
-        {/* Logo */}
         <div className="flex justify-center">
           <img src={logo} alt="Capital Express" className="h-14" />
         </div>
-
-        {/* Título */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800">Acceso al Portal de Verificaciones</h1>
           <p className="text-sm text-gray-500 mt-2">
             Inicia sesión con tu correo{" "}
-            <span className="text-[#f24123] font-medium">@capitalexpress.pe</span>
+            <span className="text-[#f24123] font-medium">@capitalexpress.pe</span> o{" "}
+            <span className="text-[#f24123] font-medium">@capitalexpress.cl</span>
           </p>
         </div>
 
-        {/* Mensaje de Error (solo se muestra si existe un error) */}
         {error && <ErrorMessage message={error} />}
 
-        {/* Botón Google */}
         <motion.button
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}

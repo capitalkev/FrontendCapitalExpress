@@ -107,7 +107,7 @@ const ProcessTimeline = ({ steps, currentStep }) => ( <div> <h4 className="font-
 const NotificationDropdown = ({ notifications, onClose }) => { const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) { onClose(); } }; document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [onClose]); const iconMap = { success: "CheckCircle", info: "MessageSquare", warning: "AlertTriangle" }; const colorMap = { success: "text-green-500", info: "text-blue-500", warning: "text-orange-500" }; return ( <div ref={dropdownRef} className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20"> <div className="p-2"> <div className="px-2 py-1 font-semibold text-sm">Notificaciones</div> <ul className="max-h-80 overflow-y-auto"> {notifications.map(notif => ( <li key={notif.id} className="p-2 hover:bg-gray-100 rounded-md"> <div className="flex items-start gap-3"> <Icon name={iconMap[notif.type]} className={colorMap[notif.type]} size={20} /> <div className="text-xs"> <p className="text-gray-800" dangerouslySetInnerHTML={{__html: notif.message}}></p> <p className="text-gray-400">{notif.time}</p> </div> </div> </li> ))} </ul> </div> </div> ); };
 
 // --- Componente principal del Dashboard ---
-export default function Dashboard({ user, handleLogout }) {
+export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
     
     const [operaciones, setOperaciones] = useState([]);
@@ -194,7 +194,9 @@ export default function Dashboard({ user, handleLogout }) {
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+        <div className="p-4 sm:p-6 lg:p-8">
+            
+            {!isAdmin}
             <header className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Mi Panel de Operaciones</h1>
@@ -216,7 +218,6 @@ export default function Dashboard({ user, handleLogout }) {
                 </div>
             </header>
             
-            <SugerenciasIA operaciones={operaciones} />
 
             <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
