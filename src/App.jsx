@@ -9,7 +9,40 @@ import Dashboard from './pages/Dashboard';
 import Gestiones from './pages/Gestiones';
 import { Icon } from './components/Icon';
 
-// ... (LoadingSpinner and ProtectedRoute components remain the same)
+// --- CONFIGURACIÓN CENTRALIZADA DE ROLES ---
+// Aquí puedes agregar o quitar correos fácilmente para asignar roles.
+const ROLES = {
+    ADMIN: [
+        'kevin.tupac@capitalexpress.cl',
+        'kevin.gianecchine@capitalexpress.cl',
+    ],
+    GESTION: [
+        'ana.gestion@capitalexpress.cl',      // Correo de ejemplo
+        'pedro.riesgos@capitalexpress.pe',    // Correo de ejemplo
+        'carla.verificacion@capitalexpress.cl'// Correo de ejemplo
+    ]
+    // El rol 'VENTAS' es el rol por defecto para cualquier otro usuario autenticado.
+};
+
+/**
+ * Determina el rol de un usuario basado en su email.
+ * @param {object} user - El objeto de usuario de Firebase.
+ * @returns {string|null} - Devuelve 'admin', 'gestion', 'ventas', o null si no hay usuario.
+ */
+const getRoleForUser = (user) => {
+    if (!user || !user.email) return null;
+
+    if (ROLES.ADMIN.includes(user.email)) {
+        return 'admin';
+    }
+    if (ROLES.GESTION.includes(user.email)) {
+        return 'gestion';
+    }
+    return 'ventas'; // Rol por defecto
+};
+
+
+// --- COMPONENTES DE UI ---
 const LoadingSpinner = () => (
     <div className="min-h-screen flex items-center justify-center bg-neutral">
       <Icon name="Loader" className="animate-spin text-blue-600" size={48} />
@@ -22,7 +55,6 @@ const ProtectedRoute = ({ user, children }) => {
     }
     return children;
 };
-
 
 const NavigationHeader = ({ user, handleLogout }) => (
     <header className="flex justify-between items-center p-4 bg-white shadow-md sticky top-0 z-10">
@@ -42,6 +74,7 @@ const NavigationHeader = ({ user, handleLogout }) => (
     </header>
 );
 
+// --- COMPONENTE PRINCIPAL DE LA APLICACIÓN ---
 const AppContent = () => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -51,16 +84,18 @@ const AppContent = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
+        const role = getRoleForUser(currentUser);
         setUser(currentUser);
-        let role = 'ventas';
-        if (currentUser.email === 'kevin.tupac@capitalexpress.cl') {
-          role = 'gestion';
-        }
         setUserRole(role);
         
         const currentPath = window.location.pathname;
         if(currentPath === '/login' || currentPath === '/'){
-            navigate(role === 'gestion' ? '/gestion' : '/dashboard');
+            // Redirige al panel principal según el rol
+            if(role === 'admin' || role === 'gestion'){
+                navigate('/gestion');
+            } else {
+                navigate('/dashboard');
+            }
         }
       } else {
         setUser(null);
@@ -84,25 +119,33 @@ const AppContent = () => {
     return <LoadingSpinner />;
   }
 
-  const isAdmin = user?.email === 'kevin.tupac@capitalexpress.cl'|| user?.email === 'kevin.gianecchine@capitalexpress.cl';
+  // Definición de permisos de una manera clara
+  const isAdmin = userRole === 'admin';
   const canAccessVentas = user && (userRole === 'ventas' || isAdmin);
   const canAccessGestion = user && (userRole === 'gestion' || isAdmin);
   
+  // Determina la ruta de redirección por defecto después del login
+  const defaultRedirectPath = () => {
+      if (isAdmin || userRole === 'gestion') return '/gestion';
+      if (userRole === 'ventas') return '/dashboard';
+      return '/login';
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
         {isAdmin && user && <NavigationHeader user={user} handleLogout={handleLogout} />}
         <Routes>
-            <Route path="/login" element={!user ? <LoginPage /> : <Navigate to={userRole === 'gestion' ? '/gestion' : '/dashboard'} />} />
+            <Route path="/login" element={!user ? <LoginPage /> : <Navigate to={defaultRedirectPath()} />} />
             
             <Route path="/dashboard" element={
                 <ProtectedRoute user={user}>
-                    {canAccessVentas ? <Dashboard user={user} handleLogout={handleLogout} isAdmin={isAdmin} /> : <Navigate to="/login" />}
+                    {canAccessVentas ? <Dashboard user={user} handleLogout={handleLogout} isAdmin={isAdmin} /> : <Navigate to="/gestion" />}
                 </ProtectedRoute>
             }/>
 
             <Route path="/gestion" element={
                 <ProtectedRoute user={user}>
-                    {canAccessGestion ? <Gestiones user={user} handleLogout={handleLogout} isAdmin={isAdmin} /> : <Navigate to="/login" />}
+                    {canAccessGestion ? <Gestiones user={user} handleLogout={handleLogout} isAdmin={isAdmin} /> : <Navigate to="/dashboard" />}
                 </ProtectedRoute>
             }/>
             
@@ -112,7 +155,7 @@ const AppContent = () => {
                 </ProtectedRoute>
             }/>
 
-            <Route path="*" element={<Navigate to={user ? (userRole === 'gestion' ? '/gestion' : '/dashboard') : "/login"} />} />
+            <Route path="*" element={<Navigate to={user ? defaultRedirectPath() : "/login"} />} />
         </Routes>
     </div>
   );

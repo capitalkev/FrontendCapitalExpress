@@ -480,8 +480,8 @@ const OperationCard = ({ operation, activeGestionId, setActiveGestionId, deudorD
                 </div>
             )}
             <CardContent>
-                 <div className="grid grid-cols-12 gap-x-4 gap-y-4 items-center">
-                    <div className="col-span-12 md:col-span-5">
+                 <div className="grid grid-cols-10 gap-x-4 gap-y-4 items-center">
+                    <div className="col-span-12 md:col-span-3">
                         <p className="font-bold text-red-600">{operation.id}</p>
                         <p className="text-lg font-semibold text-gray-900 truncate" title={operation.cliente}>{operation.cliente}</p>
                         <p className="text-sm text-gray-500 truncate" title={operation.deudor}>Deudor: {operation.deudor}</p>
