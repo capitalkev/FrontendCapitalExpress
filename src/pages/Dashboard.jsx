@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom'; // <-- Import ReactDOM for portals
 import * as LucideIcons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -76,7 +77,30 @@ const ProgressBar = ({ value, max, colorClass="bg-blue-500" }) => {
 };
 
 // --- Componentes Específicos del Dashboard ---
-const MetasPersonales = ({ kpis }) => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Target" className="text-purple-600"/>Meta de Colocación Mensual</CardTitle> </CardHeader> <CardContent> <p className="text-3xl font-bold text-gray-900">S/ {kpis.colocacionMensual.toLocaleString('es-PE')}</p> <p className="text-sm text-gray-500">de S/ {kpis.metaColocacion.toLocaleString('es-PE')}</p> <ProgressBar value={kpis.colocacionMensual} max={kpis.metaColocacion} colorClass="bg-purple-500" /> <p className="text-xs text-purple-700 mt-2">¡Vas al {((kpis.colocacionMensual / kpis.metaColocacion) * 100).toFixed(0)}%! A este ritmo superarás la meta.</p> </CardContent> </Card> );
+const SugerenciasIA = ({ operaciones }) => {
+    const operacionesAntiguas = operaciones.filter(op => {
+        const antiquity = Math.ceil(Math.abs(new Date() - new Date(op.fechaIngreso)) / (1000 * 60 * 60 * 24)) || 0;
+        return antiquity > 15 && op.estado === "En Verificación";
+    });
+
+    if (operacionesAntiguas.length === 0) return null;
+
+    return (
+        <Card className="bg-blue-50 border-blue-200 mb-8">
+            <CardContent className="flex items-start gap-4 p-4">
+                <Icon name="Lightbulb" size={24} className="text-blue-600 mt-1"/>
+                <div>
+                    <h4 className="font-semibold text-blue-800">Sugerencias del Día por IA ✨</h4>
+                    <p className="text-sm text-blue-700/90">
+                        Hola, tienes <strong className="font-bold">{operacionesAntiguas.length} {operacionesAntiguas.length > 1 ? 'operaciones' : 'operación'} con más de 15 días de antigüedad</strong>. Considera priorizar la gestión de {operacionesAntiguas.map(op => <strong key={op.id} className="font-bold">{op.id}</strong>).reduce((prev, curr) => [prev, ', ', curr])}.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const MetasPersonales = ({ kpis }) => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Target" className="text-purple-600"/>Meta de Colocación Mensual</CardTitle> </CardHeader> <CardContent> <p className="text-3xl font-bold text-gray-900">S/ {kpis.colocacionMensual.toLocaleString('es-PE')}</p> <p className="text-sm text-gray-500">de S/ {kpis.metaColocacion.toLocaleString('es-PE')}</p> <ProgressBar value={kpis.colocacionMensual} max={kpis.metaColocacion} colorClass="bg-purple-500" /> <p className="text-xs text-purple-700 mt-2">¡Vas al {kpis.metaColocacion > 0 ? ((kpis.colocacionMensual / kpis.metaColocacion) * 100).toFixed(0) : 0}%!</p> </CardContent> </Card> );
 const RendimientoEquipo = () => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Users" className="text-green-600"/>Tu Rendimiento vs. Equipo</CardTitle> </CardHeader> <CardContent className="text-sm text-center"> <p>Tu tiempo promedio de curse es de</p> <p className="text-4xl font-bold text-green-600 my-1">3 Días</p> <p className="font-semibold text-green-700">15% más rápido que el promedio del equipo. ¡Sigue así!</p> </CardContent> </Card> );
 const Logros = ({ logros }) => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Award" className="text-yellow-500"/>Mis Logros Recientes</CardTitle> </CardHeader> <CardContent className="space-y-3"> {logros.map(logro => ( <div key={logro.titulo} className="flex items-center gap-3 text-sm"> <span className="text-2xl">{logro.emoji}</span> <div> <p className="font-semibold">{logro.titulo}</p> <p className="text-xs text-gray-500">{logro.descripcion}</p> </div> </div> ))} </CardContent> </Card> );
 const ProcessTimeline = ({ steps, currentStep }) => ( <div> <h4 className="font-semibold text-gray-700 mb-3">Línea de Tiempo del Proceso</h4> <div className="flex justify-between items-center text-xs"> {steps.map((step, index) => { const stepIndex = steps.indexOf(step); const currentStepIndex = steps.indexOf(currentStep); const isCompleted = stepIndex < currentStepIndex; const isCurrent = step === currentStep; const color = isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-300'; const iconName = isCompleted ? 'Check' : 'HelpCircle'; return ( <React.Fragment key={step}> <div className="flex flex-col items-center text-center w-20"> <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${color} ${isCurrent ? 'ring-4 ring-blue-200' : ''}`}> <Icon name={iconName} size={16}/> </div> <p className={`mt-1 font-semibold ${isCurrent ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}`}>{step}</p> </div> {index < steps.length - 1 && <div className={`flex-1 h-0.5 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>} </React.Fragment> ); })} </div> </div> );
@@ -98,18 +122,14 @@ export default function Dashboard({ user, handleLogout }) {
 
     useEffect(() => {
         const fetchOperaciones = async () => {
-            if (!user) return; // No hacer nada si el usuario aún no está cargado
+            if (!user) return;
 
             try {
                 setIsLoading(true);
-                const token = await user.getIdToken(); // Obtener el token de sesión
+                const token = await user.getIdToken();
                 
-                // La URL debe apuntar a tu orquestador. El puerto 8080 es común para Python.
                 const response = await fetch('http://localhost:8000/api/operaciones', {
-                    headers: {
-                        // Enviamos el token para que el backend sepa quién hace la petición
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
@@ -118,8 +138,8 @@ export default function Dashboard({ user, handleLogout }) {
                 }
 
                 const data = await response.json();
-                setOperaciones(data.operations); // Guardamos la lista de operaciones
-                setLastLogin(data.last_login);  // Guardamos la fecha del último ingreso
+                setOperaciones(data.operations || []);
+                setLastLogin(data.last_login);
                 setError(null);
 
             } catch (err) {
@@ -131,21 +151,19 @@ export default function Dashboard({ user, handleLogout }) {
         };
 
         fetchOperaciones();
-    }, [user]); // Se ejecutará cuando el objeto 'user' esté disponible
+    }, [user]);
 
     const formatLastLogin = (dateString) => {
         if (!dateString) return "Este es tu primer ingreso.";
         const date = new Date(dateString);
         return `Tu último ingreso fue el ${date.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })} a las ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
     };
-    // Esta lógica ahora filtra los datos reales traídos de la API
+
     const filteredData = useMemo(() => {
         if (activeFilter === 'Todas') return operaciones;
-        // Asegúrate que tu API devuelva un campo 'estado'
         return operaciones.filter(op => op.estado === activeFilter);
     }, [activeFilter, operaciones]);
     
-    // El resto de la lógica (KPIs, logros) podría también usar `operaciones`
     const kpis = useMemo(() => ({
         colocacionMensual: operaciones.filter(op => op.estado === "Verificada").reduce((sum, op) => sum + (op.moneda === "PEN" ? op.monto : op.monto * 3.75), 0),
         metaColocacion: 500000,
@@ -160,39 +178,10 @@ export default function Dashboard({ user, handleLogout }) {
     };
 
     const renderTableBody = () => {
-        if (isLoading) {
-            return (
-                <tr>
-                    <td colSpan="6" className="text-center py-16">
-                        <div className="flex justify-center items-center text-gray-500">
-                            <Icon name="Loader" className="animate-spin mr-3" size={24} />
-                            Cargando tus operaciones...
-                        </div>
-                    </td>
-                </tr>
-            );
-        }
-        if (error) {
-            return (
-                <tr>
-                    <td colSpan="6" className="text-center py-16 text-red-600">
-                         <Icon name="ServerCrash" size={32} className="mx-auto mb-2" />
-                         <p className="font-semibold">No se pudieron cargar los datos</p>
-                         <p className="text-sm">{error}</p>
-                    </td>
-                </tr>
-            );
-        }
-        if (filteredData.length === 0) {
-            return (
-                <tr>
-                    <td colSpan="6" className="text-center text-gray-500 py-16">
-                        <Icon name="SearchX" size={40} className="mx-auto mb-2 opacity-50"/>
-                        <p className="font-semibold">No se encontraron operaciones en este estado.</p>
-                    </td>
-                </tr>
-            );
-        }
+        if (isLoading) return <tr><td colSpan="6" className="text-center py-16"><div className="flex justify-center items-center text-gray-500"><Icon name="Loader" className="animate-spin mr-3" size={24} />Cargando tus operaciones...</div></td></tr>;
+        if (error) return <tr><td colSpan="6" className="text-center py-16 text-red-600"><Icon name="ServerCrash" size={32} className="mx-auto mb-2" /><p className="font-semibold">No se pudieron cargar los datos</p><p className="text-sm">{error}</p></td></tr>;
+        if (filteredData.length === 0) return <tr><td colSpan="6" className="text-center text-gray-500 py-16"><Icon name="SearchX" size={40} className="mx-auto mb-2 opacity-50"/><p className="font-semibold">No se encontraron operaciones en este estado.</p></td></tr>;
+        
         return filteredData.map(op => (
             <OperationRow
                 key={op.id}
@@ -209,26 +198,26 @@ export default function Dashboard({ user, handleLogout }) {
             <header className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Mi Panel de Operaciones</h1>
-                    <p className="text-lg text-gray-500">Bienvenido de vuelta, {user?.displayName || 'Usuario'} 👋</p>
-                    {!isLoading && (
+                    <p className="text-lg text-gray-500">Bienvenido de vuelta, {user?.displayName?.split(' ')[0] || 'Usuario'} 👋</p>
+                     {!isLoading && (
                          <div className="mt-2 flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md w-fit">
                             <Icon name="ShieldCheck" size={14} className="mr-1.5 text-green-600"/>
                             <span>{formatLastLogin(lastLogin)}</span>
                         </div>
                     )}
                 </div>
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-2">
                     <div className="relative">
-                        <Button variant="ghost" className="h-10 w-10 p-0" onClick={() => setIsNotificationsOpen(prev => !prev)}><Icon name="Bell" /></Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setIsNotificationsOpen(prev => !prev)}><Icon name="Bell" /></Button>
                         {isNotificationsOpen && <NotificationDropdown notifications={notifications} onClose={() => setIsNotificationsOpen(false)} />}
                     </div>
-                    <div className="flex flex-col items-stretch gap-2">
-                         <Button variant="outline" iconName="LogOut" onClick={handleLogout} size="sm">Cerrar Sesión</Button>
-                         <Button variant="default" iconName="PlusCircle" onClick={handleNewOperationClick}>Ingresar Nueva Operación</Button>
-                    </div>
+                     <Button variant="outline" iconName="LogOut" onClick={handleLogout}>Cerrar Sesión</Button>
+                     <Button variant="default" iconName="PlusCircle" onClick={handleNewOperationClick}>Ingresar Nueva Operación</Button>
                 </div>
             </header>
             
+            <SugerenciasIA operaciones={operaciones} />
+
             <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     <Card>
@@ -248,10 +237,11 @@ export default function Dashboard({ user, handleLogout }) {
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente / ID</th>
+                                            <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente / Deudor</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Monto</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Antigüedad</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                                            <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Antigüedad</th>
+                                            <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Gestión</th>
+                                            <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                                             <th className="px-5 py-3 relative"><span className="sr-only">Acciones</span></th>
                                         </tr>
                                     </thead>
@@ -277,35 +267,76 @@ export default function Dashboard({ user, handleLogout }) {
     );
 }
 
-// --- Componente para una fila de la tabla de operaciones ---
+// --- Componente Portal para el Menú de Acciones ---
+const ActionMenuPortal = ({ children, onClose, menuPosition }) => {
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [onClose]);
+
+    // Usamos el portal para renderizar el menú fuera del DOM de la tabla
+    return ReactDOM.createPortal(
+        <div
+            ref={menuRef}
+            style={{
+                position: 'absolute',
+                top: `${menuPosition.top}px`,
+                left: `${menuPosition.left}px`,
+            }}
+            className="z-50" // <-- z-index alto para estar por encima de todo
+        >
+            {children}
+        </div>,
+        document.body
+    );
+};
+
+// --- Componente para una fila de la tabla de operaciones (CORREGIDO) ---
 const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation }) => {
     const statusMap = { "En Verificación": { variant: 'warning', icon: 'Clock', text: 'En Verificación' }, "Verificada": { variant: 'success', icon: 'CheckCircle', text: 'Verificada' }, "Rechazada": { variant: 'error', icon: 'XCircle', text: 'Rechazada' }};
     const currentStatus = statusMap[operation.estado] || { variant: 'neutral', icon: 'HelpCircle', text: operation.estado };
     const formatCurrency = (value, currency) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: currency }).format(value);
     const calculateAntiquity = (dateString) => Math.ceil(Math.abs(new Date() - new Date(dateString)) / (1000 * 60 * 60 * 24)) || 0;
     const antiquity = calculateAntiquity(operation.fechaIngreso);
-    const actionMenuRef = useRef(null);
+    const buttonRef = useRef(null); // Ref para el botón de tres puntos
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) onActionMenuToggle(null);
-        };
-        if (isActionMenuOpen) document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isActionMenuOpen, onActionMenuToggle]);
+    const handleMenuToggle = () => {
+        if (buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX - 224, // Ajusta el valor para alinear el menú a la izquierda del botón
+            });
+        }
+        onActionMenuToggle(isActionMenuOpen ? null : operation.id);
+    };
     
     return (
         <tr className="hover:bg-gray-50">
-            <td className="px-5 py-4 whitespace-nowrap">
+            <td className="px-5 py-4">
                 <div className="font-semibold text-gray-900">{operation.cliente}</div>
-                <div className="text-xs text-gray-500">{operation.id}</div>
+                <div className="text-xs text-gray-500">{operation.id || 'N/A'}</div>
             </td>
             <td className="px-5 py-4 whitespace-nowrap font-semibold text-blue-600">
                 {formatCurrency(operation.monto, operation.moneda)}
             </td>
-            <td className="px-5 py-4 whitespace-nowrap">
+            <td className="px-5 text-center py-4 whitespace-nowrap">
                 <div className={`font-semibold ${antiquity > 15 ? 'text-red-600' : 'text-gray-800'}`}>{antiquity} días</div>
-                <div className="text-xs text-gray-500">{new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</div>
+                <div className="text-xs  text-gray-500">{new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</div>
+            </td>
+             <td className="px-5 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-2 text-gray-700">
+                    <Icon name="Mail" size={16}/>
+                    <span>{operation.gestionesVerificacion?.length || 0} Correo(s)</span>
+                </div>
             </td>
             <td className="px-5 py-4 whitespace-nowrap">
                 <Badge variant={currentStatus.variant} iconName={currentStatus.icon}>
@@ -313,19 +344,20 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
                 </Badge>
             </td>
             <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="relative inline-block text-left" ref={actionMenuRef}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-200" onClick={() => onActionMenuToggle(operation.id)}>
-                        <Icon name="MoreHorizontal" size={20}/>
-                    </Button>
-                    {isActionMenuOpen && (
-                        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                <Button ref={buttonRef} variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-200" onClick={handleMenuToggle}>
+                    <Icon name="MoreHorizontal" size={20}/>
+                </Button>
+                {isActionMenuOpen && (
+                    <ActionMenuPortal onClose={() => onActionMenuToggle(null)} menuPosition={menuPosition}>
+                        <div className="w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
                             <div className="py-1" role="menu">
-                                <button onClick={() => { setSelectedOperation(operation); onActionMenuToggle(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Eye" size={16}/> Ver Detalle</button>
+                                <button onClick={() => { setSelectedOperation(operation); onActionMenuToggle(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Eye" size={16}/> Ver Detalle Completo</button>
                                 <button className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Send" size={16}/> Solicitar Verificación</button>
+                                <button className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-700 hover:bg-red-50" role="menuitem"><Icon name="Trash2" size={16}/> Solicitar Anulación</button>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </ActionMenuPortal>
+                )}
             </td>
         </tr>
     );
@@ -333,18 +365,24 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
 
 // --- Componente para el contenido del Modal de Detalles ---
 const OperationDetailModalContent = ({ operation }) => {
-    // La etapa actual debe venir de tu API. Si no, puedes usar un valor por defecto.
     const processSteps = ["Ingresada", "Verificando", "Cavali", "Cursada"];
-    const etapaActual = operation.etapa || "Ingresada";
+    const etapaActual = operation.etapaActual || "Ingresada";
 
     return (
         <div className="space-y-6">
             <ProcessTimeline steps={processSteps} currentStep={etapaActual}/>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-6">
-                <p><strong className="text-gray-500 block">ID:</strong> {operation.id}</p>
-                <p><strong className="text-gray-500 block">Ingreso:</strong> {new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { dateStyle: 'long' })}</p>
+                <p><strong className="text-gray-500 block">ID Operación:</strong> {operation.id}</p>
+                <p><strong className="text-gray-500 block">Fecha Ingreso:</strong> {new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { dateStyle: 'long' })}</p>
                 <p><strong className="text-gray-500 block">Cliente:</strong> {operation.cliente}</p>
-                <p><strong className="text-gray-500 block">Monto:</strong> {operation.moneda} {operation.monto.toLocaleString('es-PE')}</p>
+                <p><strong className="text-gray-500 block">Deudor:</strong> {operation.deudor || 'N/A'}</p>
+            </div>
+            <div className="pt-4 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-800 mb-2">Acciones Rápidas</h4>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" iconName="Send" onClick={() => alert(`Simulando solicitud de verificación para ${operation.id}`)}>Solicitar Verificación</Button>
+                    <Button variant="outline" size="sm" iconName="MessageSquare" onClick={() => alert(`Simulando añadir nota para ${operation.id}`)}>Añadir Nota</Button>
+                </div>
             </div>
         </div>
     );

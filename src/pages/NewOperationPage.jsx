@@ -147,7 +147,7 @@ export default function NewOperationPage({ user }) {
     formData.tasaOperacion &&
     formData.comision &&
     xmlFiles.length > 0 &&
-    pdfFiles.length > 0 &&
+    xmlFiles.length === pdfFiles.length &&
     respaldoFiles.length > 0 &&
     (!solicitarAdelanto ||
       (solicitarAdelanto &&
@@ -187,21 +187,22 @@ export default function NewOperationPage({ user }) {
                 </FormSection>
 
                 <FormSection number="2" title="Documentos de la Factura">
+                  <p className="text-xs text-gray-500 mb-2">La cantidad de archivos XML(s) y PDF(s) tienen que ser igual.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <FileInput onFileChange={(files) => handleFileChange(files, "xml")} accept=".xml,text/xml" title="Adjuntar XML *" iconName="FileCode"/>
-                      {xmlFiles.length > 0 && <div className="space-y-1.5 pt-2">{xmlFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "xml")}/>)}</div>}
+                      <FileInput onFileChange={(files) => handleFileChange(files, "xml")} accept=".xml,text/xml" title={`Adjuntar XML (${xmlFiles.length})*`} iconName="FileCode"/>
+                      {xmlFiles.length > 0 && <div className="max-h-48 overflow-y-auto space-y-1.5 pt-2 pr-2">{xmlFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "xml")}/>)}</div>}
                     </div>
                     <div className="space-y-2">
-                      <FileInput onFileChange={(files) => handleFileChange(files, "pdf")} accept=".pdf,application/pdf" title="Adjuntar PDF *" iconName="FileText"/>
-                      {pdfFiles.length > 0 && <div className="space-y-1.5 pt-2">{pdfFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "pdf")}/>)}</div>}
+                      <FileInput onFileChange={(files) => handleFileChange(files, "pdf")} accept=".pdf,application/pdf" title={`Adjuntar PDF (${pdfFiles.length})*`} iconName="FileText"/>
+                      {pdfFiles.length > 0 && <div className="max-h-48 overflow-y-auto space-y-1.5 pt-2 pr-2">{pdfFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "pdf")}/>)}</div>}
                     </div>
                   </div>
                 </FormSection>
 
                 <FormSection number="3" title="Respaldos Obligatorios">
-                  <FileInput onFileChange={(files) => handleFileChange(files, "respaldo")} accept="image/*,.pdf,.doc,.docx" title="Adjuntar Respaldos *" iconName="Briefcase"/>
-                  {respaldoFiles.length > 0 && <div className="space-y-1.5 pt-2">{respaldoFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "respaldo")}/>)}</div>}
+                  <FileInput onFileChange={(files) => handleFileChange(files, "respaldo")} accept="image/*,.pdf,.doc,.docx" title={`Adjuntar Respaldos (${respaldoFiles.length})*`} iconName="Briefcase"/>
+                  {respaldoFiles.length > 0 && <div className="max-h-48 overflow-y-auto space-y-1.5 pt-2 pr-2">{respaldoFiles.map((f, i) => <FileListItem key={`${i}-${f.name}`} file={f} onRemove={() => handleRemoveFile(f.name, "respaldo")}/>)}</div>}
                 </FormSection>
 
                 <FormSection number="4" title="Configuración Adicional">
