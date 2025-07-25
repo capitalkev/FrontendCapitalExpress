@@ -55,21 +55,25 @@ export default function NewOperationPage({ user }) {
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     if (name === "tasaOperacion" || name === "comision" || name === "porcentajeAdelanto") {
-      const numericValue = value
-        .replace(/[^0-9.]/g, "")
-        .replace(/(\..*?)\..*/g, "$1");
-
-      if (name === "porcentajeAdelanto") {
-        if (parseInt(numericValue, 10) <= 100 || numericValue === "") {
-          setPorcentajeAdelanto(numericValue);
+        const sanitizedValue = value.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
+        if (sanitizedValue.includes('.') && sanitizedValue.split('.')[1].length > 2) {
+            return; 
         }
-      } else {
-        setFormData((prev) => ({ ...prev, [name]: numericValue }));
-      }
+        const numericValue = parseFloat(sanitizedValue);
+        if (name === "tasaOperacion" || name === "porcentajeAdelanto") {
+            if (numericValue > 100) {
+                return;
+            }
+        }
+        if (name === "porcentajeAdelanto") {
+            setPorcentajeAdelanto(sanitizedValue);
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: sanitizedValue }));
+        }
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     }
-  }, []);
+}, []);
 
   const handleFileChange = useCallback((files, type) => {
     const fileList = Array.from(files);
