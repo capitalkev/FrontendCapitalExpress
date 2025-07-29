@@ -108,6 +108,12 @@ export default function NewOperationPage({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!user) {
+        setProcessState({ isLoading: false, error: "Usuario no autenticado. Por favor, inicie sesión de nuevo.", successData: null });
+        setIsModalOpen(true);
+        return;
+    }
+
     setProcessState({ isLoading: true, error: null, successData: null });
     setIsModalOpen(true);
 
@@ -128,12 +134,19 @@ export default function NewOperationPage({ user }) {
     respaldoFiles.forEach((file) => data.append("respaldo_files", file));
 
     try {
+        const token = await user.getIdToken();
+
         const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/submit-operation`, {
             method: "POST",
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: data,
         });
+        
         const result = await response.json();
         if (!response.ok) {
+            // El error ahora puede ser más específico, como "Token inválido"
             throw new Error(result.detail || "Ocurrió un error desconocido en el servidor.");
         }
         setProcessState({ isLoading: false, error: null, successData: result });
