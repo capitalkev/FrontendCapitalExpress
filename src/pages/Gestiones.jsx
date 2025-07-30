@@ -392,13 +392,39 @@ const AdelantoExpressModal = ({ isOpen, onClose, onConfirm, operation }) => {
 
 
 export default function Gestiones({ user, handleLogout, isAdmin = false }) {
+
     const [activeGestionId, setActiveGestionId] = useState(null);
-    const [operaciones, setOperaciones] = useState([
-        { id: "OP-00123", cliente: "Industrias Ferox", deudor: "Comercial Andina", estado: "En Verificación", prioridadIA: "Alta", prioridadRazon: "Monto elevado y deudor con historial de demora.", correosEnviados: 2, gestiones: [{fecha: "2025-07-14T10:00:00", tipo:"Llamada", resultado: "No Contesta", notas: "No responde al anexo 123.", analista: "K. Gianecchine"}], fechaIngreso: "2025-07-13", facturas: [{folio: 'F001-1234', monto: 15000, moneda: 'PEN', estado: 'Pendiente'}], alertaIA: null, adelantoExpress: false },
-        { id: "OP-00126", cliente: "Agro Exportadora Verde", deudor: "Mercados Frescos Inc.", estado: "En Verificación", prioridadIA: "Media", prioridadRazon: "Deudor nuevo, pero monto bajo.", correosEnviados: 1, gestiones: [], fechaIngreso: "2025-07-14", facturas: [{folio: 'E001-500', monto: 5800, moneda: 'USD', estado: 'Pendiente'}], alertaIA: {tipo: 'llamar', texto: '¡Llamar ya! El deudor suele responder en las primeras 4h.'}, adelantoExpress: false },
-        { id: "OP-00132", cliente: "MaxTrade S.R.L.", deudor: "Minera Andina Central", estado: "En Verificación", prioridadIA: "Alta", prioridadRazon: "Monto elevado.", correosEnviados: 1, gestiones: [], fechaIngreso: "2025-07-15", facturas: [{folio: 'F002-890', monto: 250000, moneda: 'USD', estado: 'Pendiente'}], alertaIA: {tipo: 'llamar', texto: '¡Llamar ya! Deudor requiere confirmación telefónica.'}, adelantoExpress: false },
-        { id: "OP-00133", cliente: "Agro Exportadora Verde", deudor: "Supermercados Nacionales", estado: "En Verificación", prioridadIA: "Media", prioridadRazon: "Deudor confiable, monto medio.", correosEnviados: 1, gestiones: [], fechaIngreso: "2025-07-14", facturas: [{folio: 'E001-505', monto: 22000, moneda: 'USD', estado: 'Pendiente'}], alertaIA: null, adelantoExpress: false },
-    ]);
+
+    const [operaciones, setOperaciones] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchOperacionesGestion = async () => {
+            if (!user) return;
+            setIsLoading(true);
+            try {
+                const token = await user.getIdToken();
+                // La URL debe coincidir con la de tu orquestador
+                const response = await fetch('http://localhost:8000/api/gestiones/operaciones', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('No se pudo obtener la data de gestiones.');
+                }
+                const data = await response.json();
+                setOperaciones(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchOperacionesGestion();
+    }, [user]);
+
     
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
@@ -411,7 +437,35 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     const notifications = [{ id: 1, type: "success", message: "<b>Verificación Aprobada:</b> La operación <b>OP-00124</b> ha sido verificada.", time: "hace 5 minutos", read: false }, { id: 2, type: "info", message: "<b>Respuesta Recibida:</b> El deudor de <b>OP-00125</b> ha respondido tu correo.", time: "hace 2 horas", read: false }, { id: 3, type: "warning", message: "<b>Acción Requerida:</b> La operación <b>OP-00123</b> lleva 3 días sin respuesta.", time: "hace 1 día", read: true }];
     const filteredData = useMemo(() => { const enProceso = operaciones.filter(op => !op.adelantoExpress && op.estado !== 'Completada'); const enAdelanto = operaciones.filter(op => op.adelantoExpress && op.estado !== 'Completada'); switch (activeFilter) { case 'En Proceso': return enProceso; case 'Adelanto Express': return enAdelanto; default: return operaciones.filter(op => op.estado !== 'Completada'); } }, [activeFilter, operaciones]);
     const showPopup = (message) => { setSuccessMessage(message); setShowSuccessPopup(true); setTimeout(() => setShowSuccessPopup(false), 3000); };
-    const handleSaveGestion = (opId, gestionData) => { setOperaciones(prevOps => prevOps.map(op => op.id === opId ? { ...op, gestiones: [...op.gestiones, { ...gestionData, fecha: new Date().toISOString(), analista: "K. Gianecchine" }] } : op)); setActiveGestionId(null); showPopup("¡Gestión guardada con éxito!"); };
+    
+    const handleSaveGestion = async (opId, gestionData) => {
+    try {
+        const token = await user.getIdToken();
+        const response = await fetch(`URL_ORQUESTADOR/api/operaciones/${opId}/gestiones`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(gestionData),
+        });
+        if (!response.ok) throw new Error('Error al guardar la gestión');
+        const nuevaGestion = await response.json();
+        setOperaciones(prevOps => prevOps.map(op => 
+            op.id === opId 
+                ? { ...op, gestiones: [...op.gestiones, { ...nuevaGestion, analista: user.displayName.split(' ')[0] }] } 
+                : op
+        ));
+        setActiveGestionId(null);
+        showPopup("¡Gestión guardada con éxito!");
+
+    } catch (error) {
+        console.error(error);
+        setError("No se pudo guardar la gestión. Por favor, inténtalo de nuevo más tarde.");
+    }
+};
+    
+
     const handleFacturaCheck = (opId, folio, nuevoEstado) => { setOperaciones(prevOps => prevOps.map(op => { if (op.id === opId) { const nuevasFacturas = op.facturas.map(f => f.folio === folio ? { ...f, estado: nuevoEstado } : f); const todasVerificadas = nuevasFacturas.every(f => f.estado === 'Verificada'); const algunaRechazada = nuevasFacturas.some(f => f.estado === 'Rechazada'); let nuevoEstadoOp = op.estado; if (todasVerificadas) nuevoEstadoOp = 'Conforme'; else if (algunaRechazada) nuevoEstadoOp = 'Discrepancia'; else nuevoEstadoOp = 'En Verificación'; return { ...op, facturas: nuevasFacturas, estado: nuevoEstadoOp }; } return op; })); };
     const handleCompleteVerification = (opId) => { setOperaciones(prevOps => prevOps.map(op => op.id === opId ? { ...op, estado: 'Completada' } : op)); setTimeout(() => { setOperaciones(prevOps => prevOps.filter(op => op.id !== opId)); setKpis(prevKpis => ({...prevKpis, verificadasSemana: prevKpis.verificadasSemana + 1})); showPopup("¡Operación completada!"); }, 300); };
     const handleOpenAdelantoModal = (operation) => { setSelectedAdelantoOp(operation); setIsAdelantoModalOpen(true); };
