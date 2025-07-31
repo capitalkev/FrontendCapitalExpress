@@ -60,22 +60,47 @@ export const useGestiones = (user) => {
     };
 
     const handleSaveGestion = useCallback(async (opId, gestionData) => {
-        try {
-            const token = await user.getIdToken();
-            const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/gestiones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(gestionData),
-            });
-            if (!response.ok) throw new Error('Error al guardar la gestión');
-            
-            await fetchOperaciones(); // Recarga los datos para obtener el estado más reciente
-            setActiveGestionId(null);
-            showPopup("¡Gestión guardada con éxito!");
-        } catch (error) {
-            setError("No se pudo guardar la gestión.");
+    // --- Actualización Optimista (Paso 1: Actualizar UI al instante) ---
+    const nuevaGestionLocal = {
+        ...gestionData,
+        fecha: new Date().toISOString(),
+        analista: user.displayName.split(' ')[0] || 'Tú',
+    };
+
+    setOperaciones(prevOps =>
+        prevOps.map(op =>
+            op.id === opId
+                ? { ...op, gestiones: [...op.gestiones, nuevaGestionLocal] }
+                : op
+        )
+    );
+    setActiveGestionId(null);
+    showPopup("¡Gestión guardada con éxito!");
+    try {
+        const token = await user.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/gestiones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(gestionData),
+        });
+
+        if (!response.ok) {
+            throw new Error('La sincronización con el servidor falló.');
         }
-    }, [user, fetchOperaciones]);
+
+    } catch (error) {
+        console.error("Error al sincronizar la gestión:", error);
+        setError("Falló al guardar la gestión. Por favor, recargue la página.");
+        // Opcional: Implementar lógica para revertir el cambio si la API falla.
+        setOperaciones(prevOps =>
+            prevOps.map(op =>
+                op.id === opId
+                    ? { ...op, gestiones: op.gestiones.slice(0, -1) } // Elimina la última gestión añadida
+                    : op
+            )
+        );
+    }
+}, [user, setActiveGestionId, showPopup, setError]);
     
     const handleFacturaCheck = useCallback(async (opId, folio, nuevoEstado) => {
     setOperaciones(prevOps =>
@@ -123,7 +148,7 @@ export const useGestiones = (user) => {
             await fetch(`${API_BASE_URL}/operaciones/${selectedAdelantoOp.id}/adelanto-express`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ justificacion }), // 'justification' debe ser 'justificacion'
+                body: JSON.stringify({ justificacion: justification }),
             });
             await fetchOperaciones();
             setIsAdelantoModalOpen(false);

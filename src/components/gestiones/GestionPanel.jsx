@@ -2,11 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { Icon } from '../Icon';
-import { Textarea } from '../ui/Textarea'; // Asegúrate de tener este componente o créalo
+import { Textarea } from '../ui/Textarea';
 
-// --- Componentes de Pestañas (Tabs) ---
-// Es buena práctica tenerlos en su propio archivo (ej: src/components/ui/Tabs.jsx),
-// pero los incluimos aquí para que el archivo sea autocontenido.
 const TabsContext = React.createContext();
 const Tabs = ({ children, defaultValue, className = "" }) => {
     const [activeTab, setActiveTab] = useState(defaultValue);
@@ -22,10 +19,6 @@ const TabsContent = ({ children, value, className = "" }) => {
     const { activeTab } = React.useContext(TabsContext);
     return activeTab === value ? <div className={`py-4 ${className}`}>{children}</div> : null;
 };
-// --- Fin Componentes de Pestañas ---
-
-
-// --- SUB-COMPONENTES DEL PANEL ---
 
 const GestionForm = ({ onSave, onCancel }) => {
     const [gestion, setGestion] = useState({ tipo: 'Llamada', resultado: 'Conforme', nombre_contacto: '', cargo_contacto: '', telefono_email_contacto: '', notas: '' });
@@ -36,7 +29,6 @@ const GestionForm = ({ onSave, onCancel }) => {
     };
 
     const handleSave = () => {
-        // Validación simple antes de guardar
         if (!gestion.notas.trim()) {
             alert("Por favor, ingrese una nota cualitativa para la gestión.");
             return;
@@ -116,9 +108,6 @@ const ContactoInteligente = ({ deudor }) => (
         </div>
     </div>
 );
-
-
-// --- COMPONENTE PRINCIPAL DEL PANEL ---
 
 export const GestionPanel = ({
     operation,
