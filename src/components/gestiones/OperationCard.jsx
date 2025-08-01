@@ -22,13 +22,16 @@ export const OperationCard = React.memo(
     const antiquity = operation.antiquity || 0;
     const assignedAnalyst = operation.analistaAsignado?.nombre || "Sin Asignar";
 
-    const formatCurrency = (value, currency) =>
-      new Intl.NumberFormat("es-PE", {
+    const formatCurrency = (value, currency) => {
+      // Si la moneda no es válida (null, undefined, o "N/A"), usa 'PEN' como fallback.
+      const validCurrency = currency && currency !== "N/A" ? currency : "PEN";
+      return new Intl.NumberFormat("es-PE", {
         style: "currency",
-        currency,
+        currency: validCurrency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(value);
+      }).format(value || 0); // Asegúrate de que el valor no sea nulo
+    };
 
     return (
       <Card layout>

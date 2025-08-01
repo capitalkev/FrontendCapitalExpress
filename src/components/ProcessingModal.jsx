@@ -27,15 +27,15 @@ export const ProcessingModal = ({ isOpen, processState, onClose }) => {
     const renderContent = () => {
         if (successData) {
     return (
-        <div className="p-2 text-center">
-            <Icon name="CheckCircle" className="text-green-500 h-12 w-12 mx-auto" />
-            <p className="mt-4 font-semibold text-lg text-green-800">¡Operación enviada a procesamiento!</p>
-            <div className="mt-2 text-sm text-gray-600 bg-gray-100 p-3 rounded-md">
-                <p>Tu operación ha sido registrada con el ID de seguimiento:</p>
-                <p className="font-mono font-semibold mt-1">{successData.tracking_id}</p>
-            </div>
-        </div>
-    );
+                <div className="p-2 text-center">
+                    <Icon name="CheckCircle" className="text-green-500 h-12 w-12 mx-auto" />
+                    <p className="mt-4 font-semibold text-lg text-green-800">¡Operación enviada a procesamiento!</p>
+                    <div className="mt-2 text-sm text-gray-600 bg-gray-100 p-3 rounded-md">
+                        <p>Tu operación ha sido registrada con el ID de seguimiento:</p>
+                        <p className="font-mono font-semibold mt-1">{successData.tracking_id}</p>
+                    </div>
+                </div>
+            );
 }
         if (isLoading) {
             return (

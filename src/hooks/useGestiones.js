@@ -177,18 +177,33 @@ export const useGestiones = (user) => {
     }, [user, selectedAdelantoOp, fetchOperaciones]);
 
     const handleCompleteOperation = useCallback(async (opId) => {
-        try {
-            const token = await user.getIdToken();
-            await fetch(`${API_BASE_URL}/operaciones/${opId}/completar`, {
-                method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            setOperaciones(prevOps => prevOps.filter(op => op.id !== opId));
-            showPopup("Operación completada y archivada.");
-        } catch (err) {
-            setError("No se pudo completar la operación.");
+    // Guarda el estado original para poder revertirlo en caso de error
+    const originalOperaciones = operaciones;
+
+    // Actualiza la UI inmediatamente, eliminando la operación de la lista
+    setOperaciones(prevOps => prevOps.filter(op => op.id !== opId));
+
+    try {
+        const token = await user.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/completar`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        // Si la respuesta del servidor no es exitosa, revierte el cambio
+        if (!response.ok) {
+            throw new Error('La comunicación con el servidor falló.');
         }
-    }, [user]);
+
+        // Si todo sale bien, muestra el mensaje de éxito
+        showPopup("Operación completada y archivada.");
+
+    } catch (err) {
+        // Si hay un error, restaura la lista original y muestra un aviso
+        setError("No se pudo completar la operación. La tarea ha sido restaurada.");
+        setOperaciones(originalOperaciones);
+    }
+}, [user, operaciones]); 
 
     const handleOpenAssignModal = (operation) => {
         setSelectedOpToAssign(operation);

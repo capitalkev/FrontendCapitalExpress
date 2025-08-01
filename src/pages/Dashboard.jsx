@@ -257,8 +257,10 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                 </div>
                 <aside className="lg:col-span-1 space-y-6">
                     <MetasPersonales kpis={kpis}/>
-                    <RendimientoEquipo/>
-                    <Logros logros={logros}/>
+                    {
+                    /*<RendimientoEquipo/>
+                    <Logros logros={logros}/*/
+                    }
                 </aside>
             </main>
             
@@ -301,15 +303,37 @@ const ActionMenuPortal = ({ children, onClose, menuPosition }) => {
 };
 
 // --- Componente para una fila de la tabla de operaciones (CORREGIDO) ---
-const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation }) => {
+const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation }) => {
     const statusMap = { "En Verificación": { variant: 'warning', icon: 'Clock', text: 'En Verificación' }, "Verificada": { variant: 'success', icon: 'CheckCircle', text: 'Verificada' }, "Rechazada": { variant: 'error', icon: 'XCircle', text: 'Rechazada' }};
     const currentStatus = statusMap[operation.estado] || { variant: 'neutral', icon: 'HelpCircle', text: operation.estado };
-    const formatCurrency = (value, currency) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: currency }).format(value);
-    const calculateAntiquity = (dateString) => Math.ceil(Math.abs(new Date() - new Date(dateString)) / (1000 * 60 * 60 * 24)) || 0;
-    const antiquity = calculateAntiquity(operation.fechaIngreso);
-    const buttonRef = useRef(null); // Ref para el botón de tres puntos
+
+    const formatCurrency = (value, currency) => {
+      const validCurrency = currency && currency !== "N/A" ? currency : "PEN";
+      return new Intl.NumberFormat('es-PE', {
+        style: 'currency',
+        currency: validCurrency,
+      }).format(value || 0);
+    };
+
+    const calculateAntiquity = (dateString) => {
+        const diffMs = Math.abs(new Date() - new Date(dateString));
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const totalDays = Math.floor(totalHours / 24);
+
+        if (totalHours < 24) {
+            // Si tiene 0 horas, muestra "Recién creado"
+            if (totalHours === 0) return { display: "Recién creado", days: 0 };
+            return { display: `${totalHours} hora${totalHours > 1 ? 's' : ''}`, days: 0 };
+        }
+        return { display: `${totalDays} día${totalDays > 1 ? 's' : ''}`, days: totalDays };
+    };
+    const antiquityInfo = calculateAntiquity(operation.fechaIngreso);
+    const antiquityDays = antiquityInfo.days;
+
+    const buttonRef = useRef(null);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const fechaFormateada = formatInPeruTimeZone(operation.fechaIngreso, 'dd/MM/yy');
+
 
     const handleMenuToggle = () => {
         if (buttonRef.current) {
@@ -333,8 +357,8 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
             </td>
             
             <td className="px-5 text-center py-4 whitespace-nowrap">
-                <div className={`font-semibold ${antiquity > 15 ? 'text-red-600' : 'text-gray-800'}`}>{antiquity} días</div>
-                {/* Muestra la fecha ya formateada */}
+                {/* 3. Actualiza esta línea para usar la nueva variable */}
+                <div className={`font-semibold ${antiquityDays > 15 ? 'text-red-600' : 'text-gray-800'}`}>{antiquityInfo.display}</div>
                 <div className="text-xs  text-gray-500">{fechaFormateada}</div>
             </td>
 
@@ -349,7 +373,8 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
                     {currentStatus.text}
                 </Badge>
             </td>
-            <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
+            {/*
+<td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Button ref={buttonRef} variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-200" onClick={handleMenuToggle}>
                     <Icon name="MoreHorizontal" size={20}/>
                 </Button>
@@ -365,9 +390,11 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
                     </ActionMenuPortal>
                 )}
             </td>
+            */}
+            
         </tr>
     );
-};
+});
 
 // --- Componente para el contenido del Modal de Detalles ---
 const OperationDetailModalContent = ({ operation }) => {
