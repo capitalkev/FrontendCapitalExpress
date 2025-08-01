@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom'; // <-- Import ReactDOM for portals
 import * as LucideIcons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatInPeruTimeZone } from '../utils/dateFormatter';
 
 // --- Componente Envoltorio para Iconos (Wrapper) ---
 const Icon = ({ name, size = 16, ...props }) => {
@@ -308,6 +309,7 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
     const antiquity = calculateAntiquity(operation.fechaIngreso);
     const buttonRef = useRef(null); // Ref para el botón de tres puntos
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const fechaFormateada = formatInPeruTimeZone(operation.fechaIngreso, 'dd/MM/yy');
 
     const handleMenuToggle = () => {
         if (buttonRef.current) {
@@ -329,10 +331,13 @@ const OperationRow = ({ operation, onActionMenuToggle, isActionMenuOpen, setSele
             <td className="px-5 py-4 whitespace-nowrap font-semibold text-blue-600">
                 {formatCurrency(operation.monto, operation.moneda)}
             </td>
+            
             <td className="px-5 text-center py-4 whitespace-nowrap">
                 <div className={`font-semibold ${antiquity > 15 ? 'text-red-600' : 'text-gray-800'}`}>{antiquity} días</div>
-                <div className="text-xs  text-gray-500">{new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</div>
+                {/* Muestra la fecha ya formateada */}
+                <div className="text-xs  text-gray-500">{fechaFormateada}</div>
             </td>
+
              <td className="px-5 py-4 whitespace-nowrap">
                 <div className="flex items-center gap-2 text-gray-700">
                     <Icon name="Mail" size={16}/>

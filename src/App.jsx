@@ -9,19 +9,14 @@ import Dashboard from './pages/Dashboard';
 import Gestiones from './pages/Gestiones';
 import { Icon } from './components/Icon';
 
-// --- CONFIGURACIÓN CENTRALIZADA DE ROLES ---
-// Aquí puedes agregar o quitar correos fácilmente para asignar roles.
 const ROLES = {
     ADMIN: [
         'kevin.tupac@capitalexpress.cl',
         'kevin.gianecchine@capitalexpress.cl',
     ],
     GESTION: [
-        'ana.gestion@capitalexpress.cl',      // Correo de ejemplo
-        'pedro.riesgos@capitalexpress.pe',    // Correo de ejemplo
-        'carla.verificacion@capitalexpress.cl'// Correo de ejemplo
+        'ana.gestion@capitalexpress.cl',
     ]
-    // El rol 'VENTAS' es el rol por defecto para cualquier otro usuario autenticado.
 };
 
 /**
@@ -38,11 +33,9 @@ const getRoleForUser = (user) => {
     if (ROLES.GESTION.includes(user.email)) {
         return 'gestion';
     }
-    return 'ventas'; // Rol por defecto
+    return 'ventas';
 };
 
-
-// --- COMPONENTES DE UI ---
 const LoadingSpinner = () => (
     <div className="min-h-screen flex items-center justify-center bg-neutral">
       <Icon name="Loader" className="animate-spin text-blue-600" size={48} />
@@ -74,7 +67,6 @@ const NavigationHeader = ({ user, handleLogout }) => (
     </header>
 );
 
-// --- COMPONENTE PRINCIPAL DE LA APLICACIÓN ---
 const AppContent = () => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -90,7 +82,6 @@ const AppContent = () => {
         
         const currentPath = window.location.pathname;
         if(currentPath === '/login' || currentPath === '/'){
-            // Redirige al panel principal según el rol
             if(role === 'admin' || role === 'gestion'){
                 navigate('/gestion');
             } else {

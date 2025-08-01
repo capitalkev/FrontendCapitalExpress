@@ -13,11 +13,14 @@ export const OperationCard = React.memo(
     onSaveGestion,
     onFacturaCheck,
     onOpenAdelantoModal,
-    onCompleteOperation, // <--- Prop para la nueva acción
+    onCompleteOperation,
+    onAssignOperation, // Prop para la acción de asignar
+    isAdmin, // Prop para saber si el usuario es admin
   }) => {
     const isGestionOpen = activeGestionId === operation.id;
     const isConforme = operation.estadoOperacion === "Conforme";
     const antiquity = operation.antiquity || 0;
+    const assignedAnalyst = operation.analistaAsignado?.nombre || "Sin Asignar";
 
     const formatCurrency = (value, currency) =>
       new Intl.NumberFormat("es-PE", {
@@ -65,7 +68,9 @@ export const OperationCard = React.memo(
                 Deudor: {operation.deudor}
               </p>
             </div>
-            <div className="col-span-12 md:col-span-5 grid grid-cols-3 gap-x-4 text-left">
+
+            {/* --- SECCIÓN CORREGIDA CON 4 COLUMNAS --- */}
+            <div className="col-span-12 md:col-span-5 grid grid-cols-4 gap-x-4 text-left">
               <div>
                 <p className="text-xs text-gray-500">Monto Op.</p>
                 <p className="font-semibold text-blue-600 whitespace-nowrap">
@@ -85,22 +90,36 @@ export const OperationCard = React.memo(
               <div>
                 <p className="text-xs text-gray-500">Gestión</p>
                 <div className="flex items-center gap-3 text-gray-700 font-semibold">
-                  <span
-                    className="flex items-center gap-1"
-                    title="Correos automáticos"
-                  >
+                  <span className="flex items-center gap-1" title="Correos automáticos">
                     <Icon name="Mail" size={14} /> {operation.correosEnviados}
                   </span>
-                  <span
-                    className="flex items-center gap-1"
-                    title="Gestiones manuales"
-                  >
+                  <span className="flex items-center gap-1" title="Gestiones manuales">
                     <Icon name="Phone" size={14} /> {operation.gestiones.length}
                   </span>
                 </div>
               </div>
+              {/* --- CAMPO NUEVO PARA MOSTRAR AL ASIGNADO --- */}
+              <div>
+                <p className="text-xs text-gray-500">Asignado a</p>
+                <p className="font-semibold text-purple-700 truncate" title={assignedAnalyst}>
+                   <Icon name="UserCheck" size={14} className="inline-block mr-1" />
+                   {assignedAnalyst.split(' ')[0]} {/* Muestra solo el primer nombre */}
+                </p>
+              </div>
             </div>
-            <div className="col-span-12 md:col-span-2 flex justify-start md:justify-end text-white">
+            
+            <div className="col-span-12 md:col-span-2 flex justify-start md:justify-end text-white gap-2">
+               {/* --- BOTÓN DE ASIGNAR (SOLO PARA ADMINS) --- */}
+              {isAdmin && !isConforme && (
+                <Button
+                  variant="outline"
+                  className="w-full md:w-auto"
+                  onClick={() => onAssignOperation(operation)}
+                >
+                  <Icon name="UserCog" size={18} /> Asignar
+                </Button>
+              )}
+
               {isConforme ? (
                 <Button
                   variant="success"

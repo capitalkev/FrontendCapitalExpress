@@ -14,8 +14,11 @@ import { OperationCard } from "../components/gestiones/OperationCard";
 import { DashboardSidebar } from "../components/gestiones/DashboardSidebar";
 import { Header } from "../components/gestiones/Header";
 import { AdelantoExpressModal } from "../components/gestiones/AdelantoExpressModal";
+// --- 1. Importar el nuevo modal de asignación ---
+import { AssignOperationModal } from "../components/gestiones/AssignOperationModal";
 
 export default function Gestiones({ user, handleLogout, isAdmin = false }) {
+  // --- 2. Extraer los nuevos estados y manejadores del hook ---
   const {
     isLoading,
     error,
@@ -32,6 +35,12 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     isAdelantoModalOpen,
     setIsAdelantoModalOpen,
     selectedAdelantoOp,
+    analysts,
+    isAssignModalOpen,
+    setIsAssignModalOpen,
+    selectedOpToAssign,
+    handleOpenAssignModal,
+    handleConfirmAssignment,
   } = useGestiones(user);
 
   const renderContent = () => {
@@ -72,6 +81,7 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     return (
       <AnimatePresence>
         {filteredData.map((op) => (
+          // --- 3. Pasar los nuevos props a OperationCard ---
           <OperationCard
             key={op.id}
             operation={op}
@@ -81,6 +91,8 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
             onFacturaCheck={handleFacturaCheck}
             onOpenAdelantoModal={handleOpenAdelantoModal}
             onCompleteOperation={handleCompleteOperation}
+            isAdmin={isAdmin}
+            onAssignOperation={handleOpenAssignModal}
           />
         ))}
       </AnimatePresence>
@@ -88,7 +100,7 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
   };
 
   return (
-    <div className="p-4 sm-p-6 lg-p-8 font-sans">
+    <div className="p-4 sm:p-6 lg:p-8 font-sans">
       <Header user={user} handleLogout={handleLogout} notifications={[]} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
         <main className="lg:col-span-2 space-y-6">
@@ -123,12 +135,20 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
         </aside>
       </div>
 
-      {/* --- CÓDIGO CORREGIDO: El Modal se renderiza aquí --- */}
       <AdelantoExpressModal
         isOpen={isAdelantoModalOpen}
         onClose={() => setIsAdelantoModalOpen(false)}
         onConfirm={handleConfirmAdelanto}
         operation={selectedAdelantoOp}
+      />
+
+      {/* --- 4. Renderizar el nuevo modal de asignación --- */}
+      <AssignOperationModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onConfirm={handleConfirmAssignment}
+        operation={selectedOpToAssign}
+        analysts={analysts}
       />
     </div>
   );
