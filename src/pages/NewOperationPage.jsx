@@ -20,8 +20,10 @@ import { FileInput } from "../components/FileInput";
 import { FileListItem } from "../components/FileListItem";
 import { FormSection } from "../components/FormSection";
 import { ProcessingModal } from '../components/ProcessingModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function NewOperationPage({ user }) {
+  const { firebaseUser } = useAuth();
   // --- Estados del Formulario ---
   const [formData, setFormData] = useState({
     tasaOperacion: "",
@@ -108,7 +110,7 @@ export default function NewOperationPage({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!user) {
+    if (!firebaseUser) {
         setProcessState({ isLoading: false, error: "Usuario no autenticado. Por favor, inicie sesión de nuevo.", successData: null });
         setIsModalOpen(true);
         return;
@@ -121,7 +123,7 @@ export default function NewOperationPage({ user }) {
     const cuentasDesembolso = cuenta.banco && cuenta.numero ? [cuenta] : [];
 
     const metadata = {
-        user_email: user.email,
+        user_email: firebaseUser.email,
         tasaOperacion: parseFloat(formData.tasaOperacion),
         comision: parseFloat(formData.comision),
         mailVerificacion: formData.mailVerificacion,
@@ -134,8 +136,7 @@ export default function NewOperationPage({ user }) {
     respaldoFiles.forEach((file) => data.append("respaldo_files", file));
 
     try {
-        const token = await user.getIdToken();
-
+        const token = await firebaseUser.getIdToken();
         const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/submit-operation`, {
             method: "POST",
             headers: {
@@ -143,10 +144,8 @@ export default function NewOperationPage({ user }) {
             },
             body: data,
         });
-        
         const result = await response.json();
         if (!response.ok) {
-            // El error ahora puede ser más específico, como "Token inválido"
             throw new Error(result.detail || "Ocurrió un error desconocido en el servidor.");
         }
         setProcessState({ isLoading: false, error: null, successData: result });
