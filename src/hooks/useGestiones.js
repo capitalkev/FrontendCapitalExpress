@@ -30,22 +30,35 @@ export const useGestiones = (user) => {
     const fetchOperaciones = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
+        console.log("[useGestiones] Iniciando fetch de operaciones..."); // <-- LOG A
+
         try {
-            // CORRECTO: Usar firebaseUser para obtener el token
             const token = await firebaseUser.getIdToken(); 
             const response = await fetch(`${API_BASE_URL}/gestiones/operaciones`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+
+            console.log(`[useGestiones] Respuesta del backend recibida con status: ${response.status}`); // <-- LOG B
+
             if (!response.ok) {
                 const errData = await response.json();
+                // --- LOG CRÍTICO DE ERROR ---
+                console.error("[useGestiones] Error en la respuesta del backend:", errData); // <-- LOG C
                 throw new Error(errData.detail || 'No se pudo obtener la data de gestiones.');
             }
+
             const data = await response.json();
+            
+            // --- LOG CRÍTICO DE DATOS RECIBIDOS ---
+            console.log("[useGestiones] Datos recibidos del backend:", data); // <-- LOG D
+
             setOperaciones(data);
             setError(null);
         } catch (err) {
+            console.error("[useGestiones] Error capturado en el bloque catch:", err); // <-- LOG E
             setError(err.message);
         } finally {
+            console.log("[useGestiones] Fetch finalizado. `isLoading` se establecerá en false."); // <-- LOG F
             setIsLoading(false);
         }
     }, [firebaseUser]);

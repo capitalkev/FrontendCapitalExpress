@@ -18,7 +18,7 @@ export const OperationCard = React.memo(
     isAdmin, // Prop para saber si el usuario es admin
   }) => {
     const isGestionOpen = activeGestionId === operation.id;
-    const isConforme = operation.estadoOperacion === "Conforme";
+    const isConforme = operation.estadoOperacion === "pendiente";
     const antiquity = operation.antiquity || 0;
     const assignedAnalyst = operation.analistaAsignado?.nombre || "Sin Asignar";
 

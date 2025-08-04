@@ -14,11 +14,10 @@ import { OperationCard } from "../components/gestiones/OperationCard";
 import { DashboardSidebar } from "../components/gestiones/DashboardSidebar";
 import { Header } from "../components/gestiones/Header";
 import { AdelantoExpressModal } from "../components/gestiones/AdelantoExpressModal";
-// --- 1. Importar el nuevo modal de asignación ---
+
 import { AssignOperationModal } from "../components/gestiones/AssignOperationModal";
 
 export default function Gestiones({ user, handleLogout, isAdmin = false }) {
-  // --- 2. Extraer los nuevos estados y manejadores del hook ---
   const {
     isLoading,
     error,
