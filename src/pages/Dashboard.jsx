@@ -141,7 +141,7 @@ const MetasDashboard = ({ kpis }) => (
             <GaugeChart value={kpis.colocacionMensual} max={kpis.metaColocacion} label="Completado" />
             <div className="text-center">
                 <p className="text-lg font-semibold text-gray-800">S/ {kpis.colocacionMensual.toLocaleString('es-PE')}</p>
-                <p className="text-sm text-gray-500">de tu meta de S/ {kpis.metaColocacion.toLocaleString('es-PE')}</p>
+                <p className="text-sm text-gray-500">En Proceso</p> {/*de tu meta de S/ {kpis.metaColocacion.toLocaleString('es-PE')}*/}
             </div>
         </CardContent>
     </Card>
@@ -154,9 +154,9 @@ const EstadisticasClave = ({ operations }) => {
     const tasaAprobacion = totalGestionadas > 0 ? ((verificadas / totalGestionadas) * 100).toFixed(0) : 0;
 
     const stats = [
-        { icon: "Clock", label: "Tiempo Prom. de Curse", value: "3 Días", color: "text-blue-600" },
-        { icon: "CheckCircle", label: "Operaciones Verificadas", value: verificadas, color: "text-green-600" },
-        { icon: "TrendingUp", label: "Tasa de Aprobación", value: `${tasaAprobacion}%`, color: "text-indigo-600" }
+        { icon: "Clock", label: "Tiempo Prom. de Curse", value: "En Proceso", color: "text-blue-600" },
+        { icon: "CheckCircle", label: "Operaciones Verificadas", value: "En Proceso" , color: "text-green-600" }, //{/*verificadas*/}
+        { icon: "TrendingUp", label: "Tasa de Aprobación", value: "En Proceso", color: "text-indigo-600" } //`${tasaAprobacion}%`
     ];
 
     return (
@@ -235,14 +235,14 @@ const VistaResumenSemanal = ({ kpis, operations, onClose }) => {
             <CardContent className="space-y-4">
                 <div>
                     <div className="flex justify-between items-baseline">
-                        <p className="text-sm text-gray-600">Progreso meta semanal:</p>
+                        <p className="text-sm text-gray-600">Progreso meta semanal: EN PROCESO</p>
                         <p className="text-sm font-medium text-purple-700">
                             {((weeklyPlacement / weeklyGoal) * 100).toFixed(0)}%
                         </p>
                     </div>
                     <ProgressBar value={weeklyPlacement} max={weeklyGoal} colorClass="bg-purple-500" />
-                    <p className="text-xs text-center text-gray-500 mt-1">
-                        S/ {weeklyPlacement.toLocaleString('es-PE')} de S/ {weeklyGoal.toLocaleString('es-PE')}
+                    <p className="text-xs text-center text-gray-500 mt-1"> EN PROCESO
+                        {/*S/ {weeklyPlacement.toLocaleString('es-PE')} de S/ {weeklyGoal.toLocaleString('es-PE')} */}
                     </p>
                 </div>
                 <div>
@@ -482,7 +482,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                 <aside className="lg:col-span-1 space-y-6">
                     <MetasDashboard kpis={kpis}/>
                     <EstadisticasClave operations={operaciones} />
-                    <LogroDestacado logro={logros[0]} />
+                    {/*<LogroDestacado logro={logros[0]} /> */}
                 </aside>
             </main>
             

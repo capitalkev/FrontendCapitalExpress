@@ -73,7 +73,7 @@ export const OperationCard = React.memo(
             </div>
 
             {/* --- SECCIÓN CORREGIDA CON 4 COLUMNAS --- */}
-            <div className="col-span-12 md:col-span-5 grid grid-cols-4 gap-x-4 text-left">
+            <div className="col-span-12 md:col-span-5 grid grid-cols-3 gap-x-4 text-left">
               <div>
                 <p className="text-xs text-gray-500">Monto Op.</p>
                 <p className="font-semibold text-blue-600 whitespace-nowrap">
@@ -102,18 +102,22 @@ export const OperationCard = React.memo(
                 </div>
               </div>
               {/* --- CAMPO NUEVO PARA MOSTRAR AL ASIGNADO --- */}
-              <div>
+              {isAdmin && !isConforme && (
+                <div>
                 <p className="text-xs text-gray-500">Asignado a</p>
                 <p className="font-semibold text-purple-700 truncate" title={assignedAnalyst}>
                    <Icon name="UserCheck" size={14} className="inline-block mr-1" />
-                   {assignedAnalyst.split(' ')[0]} {/* Muestra solo el primer nombre */}
+                   {assignedAnalyst.split(' ')[0]}
                 </p>
               </div>
+              )}
+              
             </div>
             
             <div className="col-span-12 md:col-span-2 flex justify-start md:justify-end text-white gap-2">
                {/* --- BOTÓN DE ASIGNAR (SOLO PARA ADMINS) --- */}
               {isAdmin && !isConforme && (
+                
                 <Button
                   variant="outline"
                   className="w-full md:w-auto"

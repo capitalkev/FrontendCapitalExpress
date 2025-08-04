@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-// URL del backend.
 const API_BASE_URL = 'http://localhost:8000/api';
 
-export const useGestiones = (user) => {
-    const { currentUser, firebaseUser } = useAuth();
+export const useGestiones = () => {
+    const { firebaseUser } = useAuth();
+    
     // --- ESTADOS PRINCIPALES ---
     const [operaciones, setOperaciones] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,15 +22,18 @@ export const useGestiones = (user) => {
     const [selectedAdelantoOp, setSelectedAdelantoOp] = useState(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedOpToAssign, setSelectedOpToAssign] = useState(null);
-
-    // --- ESTADO PARA DATOS ADICIONALES ---
     const [analysts, setAnalysts] = useState([]);
 
-    // --- LÓGICA DE DATOS ---
     const fetchOperaciones = useCallback(async () => {
-        if (!user) return;
+        if (!firebaseUser) {
+            console.log("[useGestiones] No hay usuario de Firebase, deteniendo fetch.");
+            setIsLoading(false);
+            return;
+        }
+        
         setIsLoading(true);
-        console.log("[useGestiones] Iniciando fetch de operaciones..."); // <-- LOG A
+        setError(null);
+        console.log("[useGestiones] Iniciando fetch de operaciones...");
 
         try {
             const token = await firebaseUser.getIdToken(); 
@@ -38,35 +41,31 @@ export const useGestiones = (user) => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            console.log(`[useGestiones] Respuesta del backend recibida con status: ${response.status}`); // <-- LOG B
+            console.log(`[useGestiones] Respuesta del backend recibida con status: ${response.status}`);
 
             if (!response.ok) {
                 const errData = await response.json();
-                // --- LOG CRÍTICO DE ERROR ---
-                console.error("[useGestiones] Error en la respuesta del backend:", errData); // <-- LOG C
+                console.error("[useGestiones] Error en la respuesta del backend:", errData);
                 throw new Error(errData.detail || 'No se pudo obtener la data de gestiones.');
             }
 
             const data = await response.json();
-            
-            // --- LOG CRÍTICO DE DATOS RECIBIDOS ---
-            console.log("[useGestiones] Datos recibidos del backend:", data); // <-- LOG D
-
+            console.log("[useGestiones] Datos recibidos del backend:", data);
             setOperaciones(data);
-            setError(null);
+
         } catch (err) {
-            console.error("[useGestiones] Error capturado en el bloque catch:", err); // <-- LOG E
+            console.error("[useGestiones] Error capturado en el bloque catch:", err);
             setError(err.message);
         } finally {
-            console.log("[useGestiones] Fetch finalizado. `isLoading` se establecerá en false."); // <-- LOG F
+            console.log("[useGestiones] Fetch finalizado. `isLoading` se establecerá en false.");
             setIsLoading(false);
         }
     }, [firebaseUser]);
 
     const fetchAnalysts = useCallback(async () => {
-        if (!user) return;
+        if (!firebaseUser) return;
         try {
-            const token = await user.getIdToken();
+            const token = await firebaseUser.getIdToken();
             const response = await fetch(`${API_BASE_URL}/users/analysts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -75,9 +74,8 @@ export const useGestiones = (user) => {
             setAnalysts(data);
         } catch (err) {
             console.error(err);
-            setError(err.message);
         }
-    }, [user]);
+    }, [firebaseUser]);
 
     useEffect(() => {
         fetchOperaciones();
@@ -85,6 +83,7 @@ export const useGestiones = (user) => {
     }, [fetchOperaciones, fetchAnalysts]);
 
     const filteredData = useMemo(() => {
+        if (!operaciones) return [];
         const enProceso = operaciones.filter(op => op.estadoOperacion !== 'Completada' && !op.adelantoExpress);
         const enAdelanto = operaciones.filter(op => op.estadoOperacion !== 'Completada' && op.adelantoExpress);
         if (activeFilter === 'En Proceso') return enProceso;
@@ -92,84 +91,85 @@ export const useGestiones = (user) => {
         return operaciones.filter(op => op.estadoOperacion !== 'Completada');
     }, [activeFilter, operaciones]);
     
-    // --- MANEJADORES DE ACCIONES ---
     const showPopup = (message) => {
         setSuccessMessage(message);
         setShowSuccessPopup(true);
         setTimeout(() => setShowSuccessPopup(false), 3000);
     };
 
+    // Función auxiliar para obtener el token de forma segura
+    const withToken = useCallback(async (callback) => {
+        if (!firebaseUser) {
+            setError("Usuario no autenticado para realizar esta acción.");
+            return;
+        }
+        try {
+            const token = await firebaseUser.getIdToken();
+            return await callback(token);
+        } catch (error) {
+            console.error("Error obteniendo token o ejecutando acción:", error);
+            setError("Tu sesión puede haber expirado. Por favor, recarga la página.");
+        }
+    }, [firebaseUser]);
+
     const handleSaveGestion = useCallback(async (opId, gestionData) => {
+        const displayName = firebaseUser?.displayName || 'Usuario';
         const nuevaGestionLocal = {
             ...gestionData,
             fecha: new Date().toISOString(),
-            analista: user.displayName.split(' ')[0] || 'Tú',
+            analista: displayName.split(' ')[0] || 'Tú',
         };
 
-        setOperaciones(prevOps =>
-            prevOps.map(op =>
-                op.id === opId
-                    ? { ...op, gestiones: [...op.gestiones, nuevaGestionLocal] }
-                    : op
-            )
-        );
+        setOperaciones(prevOps => prevOps.map(op =>
+            op.id === opId ? { ...op, gestiones: [...op.gestiones, nuevaGestionLocal] } : op
+        ));
         setActiveGestionId(null);
         showPopup("¡Gestión guardada con éxito!");
-        try {
-            const token = await user.getIdToken();
+
+        withToken(async (token) => {
             const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/gestiones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(gestionData),
             });
-
-            if (!response.ok) {
-                throw new Error('La sincronización con el servidor falló.');
-            }
-        } catch (error) {
+            if (!response.ok) throw new Error('La sincronización con el servidor falló.');
+        }).catch(error => {
             console.error("Error al sincronizar la gestión:", error);
             setError("Falló al guardar la gestión. Por favor, recargue la página.");
-            setOperaciones(prevOps =>
-                prevOps.map(op =>
-                    op.id === opId
-                        ? { ...op, gestiones: op.gestiones.slice(0, -1) }
-                        : op
-                )
-            );
-        }
-    }, [user]);
+            setOperaciones(prevOps => prevOps.map(op =>
+                op.id === opId ? { ...op, gestiones: op.gestiones.slice(0, -1) } : op
+            ));
+        });
+    }, [withToken, firebaseUser]);
     
     const handleFacturaCheck = useCallback(async (opId, folio, nuevoEstado) => {
-        setOperaciones(prevOps =>
-            prevOps.map(op => {
-                if (op.id === opId) {
-                    const nuevasFacturas = op.facturas.map(f =>
-                        f.folio === folio ? { ...f, estado: nuevoEstado } : f
-                    );
-                    const algunaRechazada = nuevasFacturas.some(f => f.estado === 'Rechazada');
-                    const todasVerificadas = nuevasFacturas.every(f => f.estado === 'Verificada');
-                    let nuevoEstadoOp = 'En Verificación';
-                    if (algunaRechazada) nuevoEstadoOp = 'Discrepancia';
-                    else if (todasVerificadas) nuevoEstadoOp = 'Conforme';
-                    
-                    return { ...op, facturas: nuevasFacturas, estadoOperacion: nuevoEstadoOp };
-                }
-                return op;
-            })
-        );
+        setOperaciones(prevOps => prevOps.map(op => {
+            if (op.id === opId) {
+                const nuevasFacturas = op.facturas.map(f =>
+                    f.folio === folio ? { ...f, estado: nuevoEstado } : f
+                );
+                const algunaRechazada = nuevasFacturas.some(f => f.estado === 'Rechazada');
+                const todasVerificadas = nuevasFacturas.every(f => f.estado === 'Verificada');
+                let nuevoEstadoOp = 'En Verificación';
+                if (algunaRechazada) nuevoEstadoOp = 'Discrepancia';
+                else if (todasVerificadas) nuevoEstadoOp = 'Conforme';
+                
+                return { ...op, facturas: nuevasFacturas, estadoOperacion: nuevoEstadoOp };
+            }
+            return op;
+        }));
 
-        try {
-            const token = await user.getIdToken();
+        withToken(async (token) => {
             await fetch(`${API_BASE_URL}/operaciones/${opId}/facturas/${folio}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ estado: nuevoEstado }),
             });
-        } catch (error) {
+        }).catch(error => {
             console.error("Error al sincronizar el estado de la factura:", error);
             setError("Falló la actualización de la factura. Por favor, recargue la página.");
-        }
-    }, [user]);
+        });
+    }, [withToken]);
 
     const handleOpenAdelantoModal = (operation) => {
         setSelectedAdelantoOp(operation);
@@ -178,8 +178,7 @@ export const useGestiones = (user) => {
 
     const handleConfirmAdelanto = useCallback(async (justification) => {
         if (!selectedAdelantoOp) return;
-        try {
-            const token = await user.getIdToken();
+        withToken(async (token) => {
             await fetch(`${API_BASE_URL}/operaciones/${selectedAdelantoOp.id}/adelanto-express`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -187,39 +186,25 @@ export const useGestiones = (user) => {
             });
             await fetchOperaciones();
             setIsAdelantoModalOpen(false);
-        } catch (err) {
-            setError("No se pudo mover la operación a Adelanto Express.");
-        }
-    }, [user, selectedAdelantoOp, fetchOperaciones]);
+        }).catch(() => setError("No se pudo mover la operación a Adelanto Express."));
+    }, [withToken, selectedAdelantoOp, fetchOperaciones]);
 
     const handleCompleteOperation = useCallback(async (opId) => {
-    // Guarda el estado original para poder revertirlo en caso de error
-    const originalOperaciones = operaciones;
+        const originalOperaciones = operaciones;
+        setOperaciones(prevOps => prevOps.filter(op => op.id !== opId));
 
-    // Actualiza la UI inmediatamente, eliminando la operación de la lista
-    setOperaciones(prevOps => prevOps.filter(op => op.id !== opId));
-
-    try {
-        const token = await user.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/completar`, {
-            method: 'PATCH',
-            headers: { 'Authorization': `Bearer ${token}` }
+        withToken(async (token) => {
+            const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/completar`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('La comunicación con el servidor falló.');
+            showPopup("Operación completada y archivada.");
+        }).catch(() => {
+            setError("No se pudo completar la operación. La tarea ha sido restaurada.");
+            setOperaciones(originalOperaciones);
         });
-
-        // Si la respuesta del servidor no es exitosa, revierte el cambio
-        if (!response.ok) {
-            throw new Error('La comunicación con el servidor falló.');
-        }
-
-        // Si todo sale bien, muestra el mensaje de éxito
-        showPopup("Operación completada y archivada.");
-
-    } catch (err) {
-        // Si hay un error, restaura la lista original y muestra un aviso
-        setError("No se pudo completar la operación. La tarea ha sido restaurada.");
-        setOperaciones(originalOperaciones);
-    }
-}, [user, operaciones]); 
+    }, [withToken, operaciones]);
 
     const handleOpenAssignModal = (operation) => {
         setSelectedOpToAssign(operation);
@@ -227,8 +212,7 @@ export const useGestiones = (user) => {
     };
 
     const handleConfirmAssignment = async (opId, analystEmail) => {
-        try {
-            const token = await user.getIdToken();
+        withToken(async (token) => {
             await fetch(`${API_BASE_URL}/operaciones/${opId}/assign?assignee_email=${analystEmail}`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -239,9 +223,7 @@ export const useGestiones = (user) => {
                 : op
             ));
             showPopup("Operación asignada correctamente.");
-        } catch (err) {
-            setError("No se pudo asignar la operación.");
-        }
+        }).catch(() => setError("No se pudo asignar la operación."));
     };
 
     // Devolvemos el estado y las funciones que los componentes necesitan
