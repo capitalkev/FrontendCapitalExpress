@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
                 setFirebaseUser(user); // Guardamos el usuario de Firebase
                 try {
                     const token = await user.getIdToken();
-                    const response = await fetch('http://localhost:8000/api/users/me', {
+                    const response = await fetch('https://orquestador-service-598125168090.southamerica-west1.run.app/api/users/me', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 

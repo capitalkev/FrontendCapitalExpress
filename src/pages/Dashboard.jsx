@@ -348,7 +348,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                 setIsLoading(true);
                 const token = await firebaseUser.getIdToken(); 
                 
-                const response = await fetch('http://localhost:8000/api/operaciones', {
+                const response = await fetch('https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();

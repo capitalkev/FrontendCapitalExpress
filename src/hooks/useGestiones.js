@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://orquestador-service-598125168090.southamerica-west1.run.app/api';
 
 export const useGestiones = () => {
     const { firebaseUser } = useAuth();
