@@ -14,7 +14,6 @@ const Icon = ({ name, size = 16, ...props }) => {
     return <LucideIcon size={size} {...props} className={`inline-block flex-shrink-0 ${props.className || ''}`} />;
 };
 
-// --- Componentes de UI (Reutilizados y Mejorados) ---
 const Card = React.forwardRef(({ children, className = "", ...props }, ref) => (
     <div ref={ref} className={`bg-white rounded-xl shadow-lg border border-gray-200/80 ${className}`} {...props}>{children}</div>
 ));
@@ -77,7 +76,6 @@ const ProgressBar = ({ value, max, colorClass="bg-blue-500" }) => {
     );
 };
 
-// --- Componentes Específicos del Dashboard ---
 const SugerenciasIA = ({ operaciones }) => {
     const operacionesAntiguas = operaciones.filter(op => {
         const antiquity = Math.ceil(Math.abs(new Date() - new Date(op.fechaIngreso)) / (1000 * 60 * 60 * 24)) || 0;
@@ -101,13 +99,232 @@ const SugerenciasIA = ({ operaciones }) => {
     );
 };
 
-const MetasPersonales = ({ kpis }) => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Target" className="text-purple-600"/>Meta de Colocación Mensual</CardTitle> </CardHeader> <CardContent> <p className="text-3xl font-bold text-gray-900">S/ {kpis.colocacionMensual.toLocaleString('es-PE')}</p> <p className="text-sm text-gray-500">de S/ {kpis.metaColocacion.toLocaleString('es-PE')}</p> <ProgressBar value={kpis.colocacionMensual} max={kpis.metaColocacion} colorClass="bg-purple-500" /> <p className="text-xs text-purple-700 mt-2">¡Vas al {kpis.metaColocacion > 0 ? ((kpis.colocacionMensual / kpis.metaColocacion) * 100).toFixed(0) : 0}%!</p> </CardContent> </Card> );
-const RendimientoEquipo = () => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Users" className="text-green-600"/>Tu Rendimiento vs. Equipo</CardTitle> </CardHeader> <CardContent className="text-sm text-center"> <p>Tu tiempo promedio de curse es de</p> <p className="text-4xl font-bold text-green-600 my-1">3 Días</p> <p className="font-semibold text-green-700">15% más rápido que el promedio del equipo. ¡Sigue así!</p> </CardContent> </Card> );
-const Logros = ({ logros }) => ( <Card> <CardHeader> <CardTitle className="flex items-center gap-2"><Icon name="Award" className="text-yellow-500"/>Mis Logros Recientes</CardTitle> </CardHeader> <CardContent className="space-y-3"> {logros.map(logro => ( <div key={logro.titulo} className="flex items-center gap-3 text-sm"> <span className="text-2xl">{logro.emoji}</span> <div> <p className="font-semibold">{logro.titulo}</p> <p className="text-xs text-gray-500">{logro.descripcion}</p> </div> </div> ))} </CardContent> </Card> );
-const ProcessTimeline = ({ steps, currentStep }) => ( <div> <h4 className="font-semibold text-gray-700 mb-3">Línea de Tiempo del Proceso</h4> <div className="flex justify-between items-center text-xs"> {steps.map((step, index) => { const stepIndex = steps.indexOf(step); const currentStepIndex = steps.indexOf(currentStep); const isCompleted = stepIndex < currentStepIndex; const isCurrent = step === currentStep; const color = isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-300'; const iconName = isCompleted ? 'Check' : 'HelpCircle'; return ( <React.Fragment key={step}> <div className="flex flex-col items-center text-center w-20"> <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${color} ${isCurrent ? 'ring-4 ring-blue-200' : ''}`}> <Icon name={iconName} size={16}/> </div> <p className={`mt-1 font-semibold ${isCurrent ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}`}>{step}</p> </div> {index < steps.length - 1 && <div className={`flex-1 h-0.5 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>} </React.Fragment> ); })} </div> </div> );
-const NotificationDropdown = ({ notifications, onClose }) => { const dropdownRef = useRef(null); useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) { onClose(); } }; document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [onClose]); const iconMap = { success: "CheckCircle", info: "MessageSquare", warning: "AlertTriangle" }; const colorMap = { success: "text-green-500", info: "text-blue-500", warning: "text-orange-500" }; return ( <div ref={dropdownRef} className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20"> <div className="p-2"> <div className="px-2 py-1 font-semibold text-sm">Notificaciones</div> <ul className="max-h-80 overflow-y-auto"> {notifications.map(notif => ( <li key={notif.id} className="p-2 hover:bg-gray-100 rounded-md"> <div className="flex items-start gap-3"> <Icon name={iconMap[notif.type]} className={colorMap[notif.type]} size={20} /> <div className="text-xs"> <p className="text-gray-800" dangerouslySetInnerHTML={{__html: notif.message}}></p> <p className="text-gray-400">{notif.time}</p> </div> </div> </li> ))} </ul> </div> </div> ); };
+const GaugeChart = ({ value, max, label }) => {
+    const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+    const strokeWidth = 10;
+    const radius = 50;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-// --- Componente principal del Dashboard ---
+    return (
+        <div className="relative flex flex-col items-center justify-center">
+            <svg width="140" height="140" viewBox="0 0 120 120" className="-rotate-90">
+                <circle cx="60" cy="60" r={radius} fill="none" strokeWidth={strokeWidth} className="stroke-gray-200" />
+                <circle
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="none"
+                    strokeWidth={strokeWidth}
+                    className="stroke-purple-600"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+                />
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold text-purple-700">{percentage.toFixed(0)}%</span>
+                <span className="text-xs text-gray-500">{label}</span>
+            </div>
+        </div>
+    );
+};
+
+const MetasDashboard = ({ kpis }) => (
+    <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Icon name="Target" className="text-purple-600"/>Meta de Colocación Mensual</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-4">
+            <GaugeChart value={kpis.colocacionMensual} max={kpis.metaColocacion} label="Completado" />
+            <div className="text-center">
+                <p className="text-lg font-semibold text-gray-800">S/ {kpis.colocacionMensual.toLocaleString('es-PE')}</p>
+                <p className="text-sm text-gray-500">de tu meta de S/ {kpis.metaColocacion.toLocaleString('es-PE')}</p>
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const EstadisticasClave = ({ operations }) => {
+    const verificadas = operations.filter(op => op.estado === 'Verificada').length;
+    const rechazadas = operations.filter(op => op.estado === 'Rechazada').length;
+    const totalGestionadas = verificadas + rechazadas;
+    const tasaAprobacion = totalGestionadas > 0 ? ((verificadas / totalGestionadas) * 100).toFixed(0) : 0;
+
+    const stats = [
+        { icon: "Clock", label: "Tiempo Prom. de Curse", value: "3 Días", color: "text-blue-600" },
+        { icon: "CheckCircle", label: "Operaciones Verificadas", value: verificadas, color: "text-green-600" },
+        { icon: "TrendingUp", label: "Tasa de Aprobación", value: `${tasaAprobacion}%`, color: "text-indigo-600" }
+    ];
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Icon name="BarChart2" className="text-gray-500"/>Estadísticas Clave</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {stats.map(stat => (
+                    <div key={stat.label} className="flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                           <Icon name={stat.icon} size={16} className={stat.color} />
+                           <span>{stat.label}</span>
+                        </div>
+                        <span className="font-semibold text-gray-800">{stat.value}</span>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+};
+
+const LogroDestacado = ({ logro }) => {
+    if (!logro) return null; // No renderizar si no hay logro para mostrar
+
+    return (
+        <Card className="bg-gradient-to-tr from-yellow-50 to-amber-100 border-yellow-200">
+            <CardContent className="flex items-center gap-4 p-4">
+                 <div className={`flex-shrink-0 h-12 w-12 rounded-lg flex items-center justify-center ${logro.colorClass}`}>
+                    <span className="text-2xl">{logro.emoji}</span>
+                </div>
+                <div>
+                    <p className="font-bold text-yellow-900">{logro.titulo}</p>
+                    <p className="text-sm text-yellow-800/90">{logro.descripcion}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const VistaResumenSemanal = ({ kpis, operations, onClose }) => {
+    const weeklyGoal = kpis.metaColocacion / 4;
+    const getWeekNumber = (d) => {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    };
+    const latestDate = new Date(Math.max.apply(null, operations.map(op => new Date(op.fechaIngreso))));
+    const currentWeek = getWeekNumber(latestDate);
+    const currentYear = latestDate.getUTCFullYear();
+    const opsThisWeek = operations.filter(op => {
+        const opDate = new Date(op.fechaIngreso);
+        return getWeekNumber(opDate) === currentWeek && opDate.getUTCFullYear() === currentYear;
+    });
+    const verifiedOpsThisWeek = opsThisWeek.filter(op => op.estado === "Verificada");
+    const weeklyPlacement = verifiedOpsThisWeek.reduce((sum, op) => sum + (op.moneda === "PEN" ? op.monto : op.monto * 3.75), 0);
+    const checkListItems = [
+        { text: `Has ingresado ${opsThisWeek.length} nuevas operaciones.`, achieved: opsThisWeek.length > 0 },
+        { text: `Lograste verificar ${verifiedOpsThisWeek.length} operaciones.`, achieved: verifiedOpsThisWeek.length > 0 },
+        { text: `Colocaste S/ ${weeklyPlacement.toLocaleString('es-PE')} esta semana.`, achieved: weeklyPlacement > 10000 },
+        { text: "¡Tu racha de 0 rechazos esta semana continúa!", achieved: !opsThisWeek.some(op => op.estado === "Rechazada") },
+    ];
+
+    return (
+        <Card className="bg-gradient-to-br from-purple-50 via-white to-blue-50 border-purple-200/80 mb-8 transition-all duration-300 ease-in-out">
+            <CardHeader className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2">
+                    <Icon name="TrendingUp" className="text-purple-600" />
+                    Tu Resumen Semanal
+                </CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+                    <Icon name="X" size={20} />
+                </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <div className="flex justify-between items-baseline">
+                        <p className="text-sm text-gray-600">Progreso meta semanal:</p>
+                        <p className="text-sm font-medium text-purple-700">
+                            {((weeklyPlacement / weeklyGoal) * 100).toFixed(0)}%
+                        </p>
+                    </div>
+                    <ProgressBar value={weeklyPlacement} max={weeklyGoal} colorClass="bg-purple-500" />
+                    <p className="text-xs text-center text-gray-500 mt-1">
+                        S/ {weeklyPlacement.toLocaleString('es-PE')} de S/ {weeklyGoal.toLocaleString('es-PE')}
+                    </p>
+                </div>
+                <div>
+                    <h5 className="font-semibold text-sm text-gray-800 mb-2">Checklist de Logros de la Semana:</h5>
+                    <ul className="space-y-2">
+                        {checkListItems.filter(item => item.achieved).map((item, index) => (
+                            <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                                <Icon name="CheckCircle2" className="text-green-500 flex-shrink-0" size={16} />
+                                <span>{item.text}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const NotificationDropdown = ({ notifications, onClose }) => {
+    const dropdownRef = useRef(null);
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [onClose]);
+    
+    const iconMap = { success: "CheckCircle", info: "MessageSquare", warning: "AlertTriangle" };
+    const colorMap = { success: "text-green-500", info: "text-blue-500", warning: "text-orange-500" };
+
+    return (
+        <div ref={dropdownRef} className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+            <div className="p-2">
+                <div className="px-2 py-1 font-semibold text-sm">Notificaciones</div>
+                <ul className="max-h-80 overflow-y-auto">
+                    {notifications.map(notif => (
+                        <li key={notif.id} className="p-2 hover:bg-gray-100 rounded-md">
+                            <div className="flex items-start gap-3">
+                                <Icon name={iconMap[notif.type]} className={colorMap[notif.type]} size={20} />
+                                <div className="text-xs">
+                                    <p className="text-gray-800" dangerouslySetInnerHTML={{__html: notif.message}}></p>
+                                    <p className="text-gray-400">{notif.time}</p>
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
+};
+
+const ProcessTimeline = ({ steps, currentStep }) => (
+    <div>
+        <h4 className="font-semibold text-gray-700 mb-3">Línea de Tiempo del Proceso</h4>
+        <div className="flex justify-between items-center text-xs">
+            {steps.map((step, index) => {
+                const stepIndex = steps.indexOf(step);
+                const currentStepIndex = steps.indexOf(currentStep);
+                const isCompleted = stepIndex < currentStepIndex;
+                const isCurrent = step === currentStep;
+                const color = isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-300';
+                const iconName = isCompleted ? 'Check' : 'HelpCircle';
+                
+                return (
+                    <React.Fragment key={step}>
+                        <div className="flex flex-col items-center text-center w-20">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${color} ${isCurrent ? 'ring-4 ring-blue-200' : ''}`}>
+                                <Icon name={iconName} size={16}/>
+                            </div>
+                            <p className={`mt-1 font-semibold ${isCurrent ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'}`}>{step}</p>
+                        </div>
+                        {index < steps.length - 1 && <div className={`flex-1 h-0.5 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>}
+                    </React.Fragment>
+                );
+            })}
+        </div>
+    </div>
+);
+
 export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
     
@@ -120,6 +337,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [selectedOperation, setSelectedOperation] = useState(null);
     const [lastLogin, setLastLogin] = useState(null);
+    const [showSummary, setShowSummary] = useState(true);
 
     useEffect(() => {
         const fetchOperaciones = async () => {
@@ -166,11 +384,10 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     }, [activeFilter, operaciones]);
     
     const kpis = useMemo(() => ({
-        colocacionMensual: operaciones.filter(op => op.estado === "Verificada").reduce((sum, op) => sum + (op.moneda === "PEN" ? op.monto : op.monto * 3.75), 0),
-        metaColocacion: 500000,
-    }), [operaciones]);
+            colocacionMensual: operaciones.filter(op => op.estado === "Verificada").reduce((sum, op) => sum + (op.moneda === "PEN" ? op.monto : op.monto * 3.75), 0),
+            metaColocacion: 500000,
+        }), [operaciones]);
     
-    const logros = [ { emoji: '🏆', titulo: 'Maestro de la Meta', descripcion: 'Superaste tu meta en Mayo.' }, { emoji: '🚀', titulo: 'Impulso Inicial', descripcion: 'Registraste 5 operaciones esta semana.' } ];
     const notifications = [ { id: 1, type: "success", message: "<b>Verificación Aprobada:</b> La operación <b>OP-00124</b> ha sido verificada.", time: "hace 5 minutos" }];
     const filterOptions = ["Todas", "En Verificación", "Verificada", "Rechazada"];
     
@@ -193,6 +410,11 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
             />
         ));
     };
+    const logros = [
+        { emoji: '�', titulo: 'Maestro de la Meta', descripcion: 'Superaste tu meta en Mayo.', colorClass: 'bg-yellow-100 text-yellow-600' },
+        { emoji: '🚀', titulo: 'Impulso Inicial', descripcion: 'Registraste 5 operaciones esta semana.', colorClass: 'bg-blue-100 text-blue-600' },
+        { emoji: '⚡', titulo: 'Racha de Verificaciones', descripcion: 'Verificaste 3 operaciones seguidas.', colorClass: 'bg-green-100 text-green-600' }
+    ];
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -222,6 +444,13 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
 
             <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
+                    {showSummary && (
+                        <VistaResumenSemanal 
+                            kpis={kpis} 
+                            operations={operaciones} 
+                            onClose={() => setShowSummary(false)} 
+                        />
+                    )}
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                             <div>
@@ -244,7 +473,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                                             <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Antigüedad</th>
                                             <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Gestión</th>
                                             <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                                            <th className="px-5 py-3 relative"><span className="sr-only">Acciones</span></th>
+                                            {/* <th className="px-5 py-3 relative"><span className="sr-only">Acciones</span></th>*/}
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -256,11 +485,9 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                     </Card>
                 </div>
                 <aside className="lg:col-span-1 space-y-6">
-                    <MetasPersonales kpis={kpis}/>
-                    {
-                    /*<RendimientoEquipo/>
-                    <Logros logros={logros}/*/
-                    }
+                    <MetasDashboard kpis={kpis}/>
+                    <EstadisticasClave operations={operaciones} />
+                    <LogroDestacado logro={logros[0]} />
                 </aside>
             </main>
             
@@ -271,7 +498,6 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     );
 }
 
-// --- Componente Portal para el Menú de Acciones ---
 const ActionMenuPortal = ({ children, onClose, menuPosition }) => {
     const menuRef = useRef(null);
 
@@ -302,7 +528,6 @@ const ActionMenuPortal = ({ children, onClose, menuPosition }) => {
     );
 };
 
-// --- Componente para una fila de la tabla de operaciones (CORREGIDO) ---
 const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation }) => {
     const statusMap = { "En Verificación": { variant: 'warning', icon: 'Clock', text: 'En Verificación' }, "Verificada": { variant: 'success', icon: 'CheckCircle', text: 'Verificada' }, "Rechazada": { variant: 'error', icon: 'XCircle', text: 'Rechazada' }};
     const currentStatus = statusMap[operation.estado] || { variant: 'neutral', icon: 'HelpCircle', text: operation.estado };
@@ -321,7 +546,6 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
         const totalDays = Math.floor(totalHours / 24);
 
         if (totalHours < 24) {
-            // Si tiene 0 horas, muestra "Recién creado"
             if (totalHours === 0) return { display: "Recién creado", days: 0 };
             return { display: `${totalHours} hora${totalHours > 1 ? 's' : ''}`, days: 0 };
         }
@@ -340,7 +564,7 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
             const rect = buttonRef.current.getBoundingClientRect();
             setMenuPosition({
                 top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX - 224, // Ajusta el valor para alinear el menú a la izquierda del botón
+                left: rect.left + window.scrollX - 224,
             });
         }
         onActionMenuToggle(isActionMenuOpen ? null : operation.id);
@@ -374,7 +598,7 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
                 </Badge>
             </td>
             {/*
-<td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Button ref={buttonRef} variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-200" onClick={handleMenuToggle}>
                     <Icon name="MoreHorizontal" size={20}/>
                 </Button>

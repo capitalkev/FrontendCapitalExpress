@@ -11,7 +11,6 @@ import { Icon } from './components/Icon';
 
 const ROLES = {
     ADMIN: [
-        'kevin.tupac@capitalexpress.cl',
         'kevin.gianecchine@capitalexpress.cl',
     ],
     GESTION: [
