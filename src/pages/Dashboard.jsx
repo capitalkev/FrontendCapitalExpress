@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom'; // <-- Import ReactDOM for portals
 import * as LucideIcons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatInPeruTimeZone } from '../utils/dateFormatter';
+import { useAuth } from '../context/AuthContext';
 
 // --- Componente Envoltorio para Iconos (Wrapper) ---
 const Icon = ({ name, size = 16, ...props }) => {
@@ -327,7 +328,7 @@ const ProcessTimeline = ({ steps, currentStep }) => (
 
 export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
-    
+    const { currentUser, firebaseUser } = useAuth();
     const [operaciones, setOperaciones] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -341,21 +342,15 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
 
     useEffect(() => {
         const fetchOperaciones = async () => {
-            if (!user) return;
+            if (!firebaseUser) return; 
 
             try {
                 setIsLoading(true);
-                const token = await user.getIdToken();
+                const token = await firebaseUser.getIdToken(); 
                 
                 const response = await fetch('http://localhost:8000/api/operaciones', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'No se pudo conectar con el servidor.');
-                }
-
                 const data = await response.json();
                 setOperaciones(data.operations || []);
                 setLastLogin(data.last_login);
@@ -370,7 +365,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
         };
 
         fetchOperaciones();
-    }, [user]);
+    }, [firebaseUser]);
 
     const formatLastLogin = (dateString) => {
         if (!dateString) return "Este es tu primer ingreso.";

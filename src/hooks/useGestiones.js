@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 // URL del backend.
 const API_BASE_URL = 'http://localhost:8000/api';
 
 export const useGestiones = (user) => {
+    const { currentUser, firebaseUser } = useAuth();
     // --- ESTADOS PRINCIPALES ---
     const [operaciones, setOperaciones] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +31,8 @@ export const useGestiones = (user) => {
         if (!user) return;
         setIsLoading(true);
         try {
-            const token = await user.getIdToken();
+            // CORRECTO: Usar firebaseUser para obtener el token
+            const token = await firebaseUser.getIdToken(); 
             const response = await fetch(`${API_BASE_URL}/gestiones/operaciones`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -45,7 +48,7 @@ export const useGestiones = (user) => {
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [firebaseUser]);
 
     const fetchAnalysts = useCallback(async () => {
         if (!user) return;
