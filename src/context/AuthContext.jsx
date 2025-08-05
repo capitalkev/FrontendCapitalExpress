@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setLoading(true);
             if (user) {
-                setFirebaseUser(user); // Guardamos el usuario de Firebase
+                setFirebaseUser(user);
                 try {
                     const token = await user.getIdToken();
                     const response = await fetch('https://orquestador-service-598125168090.southamerica-west1.run.app/api/users/me', {
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
                         throw new Error('Usuario no autorizado.');
                     }
                     const backendUser = await response.json();
-                    setCurrentUser(backendUser); // Guardamos el usuario del backend
+                    setCurrentUser(backendUser);
                 } catch (error) {
                     console.error("Fallo al sincronizar con el backend:", error);
                     await signOut(auth); // Desloguear si hay error

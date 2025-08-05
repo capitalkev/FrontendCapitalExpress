@@ -180,7 +180,7 @@ const EstadisticasClave = ({ operations }) => {
 };
 
 const LogroDestacado = ({ logro }) => {
-    if (!logro) return null; // No renderizar si no hay logro para mostrar
+    if (!logro) return null;
 
     return (
         <Card className="bg-gradient-to-tr from-yellow-50 to-amber-100 border-yellow-200">
@@ -418,7 +418,7 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
             <header className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Mi Panel de Operaciones</h1>
-                    <p className="text-lg text-gray-500">Bienvenido de vuelta, {user?.displayName?.split(' ')[0] || 'Usuario'} 👋</p>
+                    <p className="text-lg text-gray-500">Bienvenido de vuelta, {firebaseUser?.displayName?.split(' ')[0] || 'Usuario'} 👋</p>
                      {!isLoading && (
                          <div className="mt-2 flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md w-fit">
                             <Icon name="ShieldCheck" size={14} className="mr-1.5 text-green-600"/>

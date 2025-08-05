@@ -14,8 +14,8 @@ export const OperationCard = React.memo(
     onFacturaCheck,
     onOpenAdelantoModal,
     onCompleteOperation,
-    onAssignOperation, // Prop para la acción de asignar
-    isAdmin, // Prop para saber si el usuario es admin
+    onAssignOperation,
+    isAdmin,
   }) => {
     const isGestionOpen = activeGestionId === operation.id;
     const isConforme = operation.estadoOperacion === "pendiente";
@@ -35,6 +35,7 @@ export const OperationCard = React.memo(
 
     return (
       <Card layout>
+        {/*
         {operation.alertaIA && (
           <div
             className={`px-5 py-2 text-sm font-semibold flex items-center gap-2 rounded-t-xl ${
@@ -53,7 +54,8 @@ export const OperationCard = React.memo(
             />
             {operation.alertaIA.texto}
           </div>
-        )}
+        )} 
+        */}
         <CardContent>
           <div className="grid grid-cols-10 gap-x-4 gap-y-4 items-center">
             <div className="col-span-12 md:col-span-3">
@@ -94,7 +96,7 @@ export const OperationCard = React.memo(
                 <p className="text-xs text-gray-500">Gestión</p>
                 <div className="flex items-center gap-3 text-gray-700 font-semibold">
                   <span className="flex items-center gap-1" title="Correos automáticos">
-                    <Icon name="Mail" size={14} /> {operation.correosEnviados}
+                    <Icon name="Mail" size={14} /> 1 {/* {operation.correosEnviados}  */}
                   </span>
                   <span className="flex items-center gap-1" title="Gestiones manuales">
                     <Icon name="Phone" size={14} /> {operation.gestiones.length}

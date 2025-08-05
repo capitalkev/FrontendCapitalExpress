@@ -4,7 +4,7 @@ import { Icon } from '../Icon';
 import { ProgressBar } from '../ui/ProgressBar'; // Necesitarás crear este componente
 
 // Datos de ejemplo, idealmente vendrían del hook
-const kpis = { verificadasSemana: 26, metaSemanal: 75 };
+const kpis = { verificadasSemana: 0, metaSemanal: 0 };
 const logros = [
     { emoji: '🎯', titulo: 'Verificador Experto', descripcion: 'Completaste 20 verificaciones la semana pasada.' },
     { emoji: '⚡', titulo: 'Rápido y Eficaz', descripcion: 'Lograste un tiempo de respuesta promedio de 5h.' }
@@ -24,10 +24,11 @@ export const DashboardSidebar = () => (
             <CardHeader><CardTitle className="flex items-center gap-2"><Icon name="TrendingUp" className="text-green-600"/>Tu Rendimiento Histórico</CardTitle></CardHeader>
             <CardContent className="text-sm text-center">
                 <p>Tiempo Prom. Verificación (este mes)</p>
-                <p className="text-4xl font-bold text-green-600 my-1">6 Horas</p>
-                <p className="font-semibold text-green-700">25% más rápido que el mes pasado.</p>
+                <p className="text-4xl font-bold text-green-600 my-1">0 Horas</p>
+                <p className="font-semibold text-green-700">0% más rápido que el mes pasado.</p>
             </CardContent>
         </Card>
+        {/* 
         <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Icon name="Award" className="text-yellow-500"/>Mis Logros Recientes</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -42,5 +43,7 @@ export const DashboardSidebar = () => (
                 ))}
             </CardContent>
         </Card>
+        */}
+        
     </>
 );

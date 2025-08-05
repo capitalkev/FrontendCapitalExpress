@@ -1,6 +1,6 @@
 // src/pages/NewOperationPage.jsx
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from 'react-router-dom';
 // Asegúrate de que las rutas a tus componentes sean correctas
@@ -24,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function NewOperationPage({ user }) {
   const { firebaseUser } = useAuth();
+  const pollingIntervalRef = useRef(null);
   // --- Estados del Formulario ---
   const [formData, setFormData] = useState({
     tasaOperacion: "",
@@ -52,7 +53,27 @@ export default function NewOperationPage({ user }) {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // --- Manejadores de Estado y Eventos ---
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const handleNewOperation = useCallback(() => {
+    // Resetea el formulario para una nueva operación
+    setFormData({ tasaOperacion: "", comision: "", mailVerificacion: "" });
+    setXmlFiles([]); setPdfFiles([]); setRespaldoFiles([]);
+    setSolicitarAdelanto(false); setPorcentajeAdelanto("");
+    setCuenta({ banco: "", tipo: "", numero: "", moneda: "" });
+    setIsModalOpen(false);
+    setProcessState({ isLoading: false, error: null, successData: null, steps: {} });
+    stopPolling();
+  }, [stopPolling]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -95,17 +116,6 @@ export default function NewOperationPage({ user }) {
     }));
   }, []);
 
-  const resetForm = useCallback(() => {
-    setFormData({ tasaOperacion: "", comision: "", mailVerificacion: "" });
-    setXmlFiles([]);
-    setPdfFiles([]);
-    setRespaldoFiles([]);
-    setSolicitarAdelanto(false);
-    setPorcentajeAdelanto("");
-    setCuenta({ banco: "", tipo: "", numero: "", moneda: "" });
-    setIsModalOpen(false);
-    setProcessState({ isLoading: false, error: null, successData: null });
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,24 +146,42 @@ export default function NewOperationPage({ user }) {
     respaldoFiles.forEach((file) => data.append("respaldo_files", file));
 
     try {
-        const token = await firebaseUser.getIdToken();
-        const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/submit-operation`, {
-            method: "POST",
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: data,
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.detail || "Ocurrió un error desconocido en el servidor.");
-        }
-        setProcessState({ isLoading: false, error: null, successData: result });
-    } catch (error) {
-        console.error("Error al registrar la operación:", error);
-        setProcessState({ isLoading: false, error: error.message, successData: null });
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/submit-operation`, {
+          method: "POST", headers: { 'Authorization': `Bearer ${token}` }, body: data,
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail || `Error del servidor: ${response.status}`);
+      
+      const trackingId = result.tracking_id;
+
+      pollingIntervalRef.current = setInterval(async () => {
+          try {
+              const statusResponse = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/operation-status/${trackingId}`);
+              
+              if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                
+                setProcessState(prevState => ({ ...prevState, steps: { ...prevState.steps, ...statusData.steps } }));
+                
+                if (statusData.drive_folder_url) {
+                    stopPolling();
+                    setProcessState({ isLoading: false, error: null, successData: { tracking_id: trackingId, drive_folder_url: statusData.drive_folder_url } });
+                }
+              }
+          } catch (pollError) {
+              console.error("Error en el sondeo:", pollError);
+          }
+      }, 3000);
+
+    } catch (submitError) {
+      stopPolling();
+      setProcessState({ isLoading: false, error: submitError.message, successData: null });
     }
   };
+
+  
 
   const isFormValid =
     formData.tasaOperacion &&
@@ -173,7 +201,11 @@ export default function NewOperationPage({ user }) {
         <ProcessingModal
             isOpen={isModalOpen}
             processState={processState}
-            onClose={resetForm}
+            onReset={handleNewOperation}
+            onClose={() => {
+                stopPolling();
+                setIsModalOpen(false);
+            }}
         />
         <Card className="w-full max-w-3xl mx-auto">
            <CardHeader>

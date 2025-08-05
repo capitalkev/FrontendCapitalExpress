@@ -129,7 +129,7 @@ export const GestionPanel = ({
                         <TabsTrigger value="facturas" iconName="ListChecks">Facturas ({operation.facturas.filter(f => f.estado === 'Verificada').length}/{operation.facturas.length})</TabsTrigger>
                         <TabsTrigger value="gestion" iconName="PlusCircle">Registrar Gestión</TabsTrigger>
                         <TabsTrigger value="historial" iconName="History">Historial</TabsTrigger>
-                        <TabsTrigger value="ia" iconName="Lightbulb">Asistencia IA</TabsTrigger>
+                        {/*<TabsTrigger value="ia" iconName="Lightbulb">Asistencia IA</TabsTrigger>*/}
                     </TabsList>
                     
                     <TabsContent value="gestion">
