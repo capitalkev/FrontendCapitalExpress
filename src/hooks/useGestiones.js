@@ -1,23 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = '/api';
+import { API_BASE_URL } from '../config/api';
 
 export const useGestiones = () => {
     const { firebaseUser } = useAuth();
     
-    // --- ESTADOS PRINCIPALES ---
     const [operaciones, setOperaciones] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- ESTADOS DE UI ---
     const [activeFilter, setActiveFilter] = useState('En Proceso');
     const [activeGestionId, setActiveGestionId] = useState(null);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     
-    // --- ESTADOS PARA MODALES ---
     const [isAdelantoModalOpen, setIsAdelantoModalOpen] = useState(false);
     const [selectedAdelantoOp, setSelectedAdelantoOp] = useState(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
