@@ -51,7 +51,7 @@ const GestionForm = ({ onSave, onCancel }) => {
             <Textarea name="notas" value={gestion.notas} onChange={handleChange} placeholder="Notas cualitativas de la gestión..." required/>
             <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={onCancel}>Cancelar</Button>
-                <Button variant="primary" size="sm" onClick={handleSave} iconName="Save">Guardar Gestión</Button>
+                <Button variant="outline" size="sm" onClick={handleSave} iconName="Save">Guardar Gestión</Button>
             </div>
         </div>
     );
@@ -66,7 +66,6 @@ const FacturaChecklist = ({ facturas, onCheck }) => {
                     <div key={factura.folio} className={`p-2 rounded-md border flex items-center justify-between transition-colors ${factura.estado === 'Verificada' ? 'bg-green-50 border-green-200' : factura.estado === 'Rechazada' ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
                         <span className="text-sm text-gray-700">{factura.folio} - {new Intl.NumberFormat('es-PE', { style: 'currency', currency: factura.moneda }).format(factura.monto)}</span>
                          <div className="flex items-center gap-1">
-                             {/* Botón para desmarcar (NUEVO) */}
                             <button onClick={() => onCheck(factura.folio, 'En Verificación')} title="Desmarcar Estado" className="h-6 w-6 rounded-full hover:bg-gray-200 text-gray-500 flex items-center justify-center">
                                 <Icon name="RotateCcw" size={14}/>
                             </button>

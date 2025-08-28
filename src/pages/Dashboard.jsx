@@ -325,6 +325,8 @@ const ProcessTimeline = ({ steps, currentStep }) => (
     </div>
 );
 
+    
+
 export default function Dashboard({ handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
     const { firebaseUser } = useAuth();
@@ -341,19 +343,30 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
     const [lastLogin, setLastLogin] = useState(null);
     const [showSummary, setShowSummary] = useState(true);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalOperations, setTotalOperations] = useState(0);
+    const PAGE_SIZE = 20;
     useEffect(() => {
-        const fetchOperaciones = async () => {
-            if (!firebaseUser) return; 
+        const fetchOperaciones = async (pageToFetch) => {
+            if (!firebaseUser) return;
 
+            setIsLoading(true);
             try {
-                setIsLoading(true);
-                const token = await firebaseUser.getIdToken(); 
+                const token = await firebaseUser.getIdToken();
                 
-                const response = await fetch('https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones', {
+                const url = `https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones?page=${pageToFetch}&limit=${PAGE_SIZE}`;
+
+                const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
                 const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Error del servidor');
+                
                 setOperaciones(data.operations || []);
+                setTotalOperations(data.total || 0);
+                setTotalPages(Math.ceil((data.total || 0) / PAGE_SIZE));
                 setLastLogin(data.last_login);
                 setError(null);
 
@@ -365,8 +378,8 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
             }
         };
 
-        fetchOperaciones();
-    }, [firebaseUser]);
+        fetchOperaciones(currentPage);
+    }, [firebaseUser, currentPage]);
 
     const formatLastLogin = (dateString) => {
         if (!dateString) return "Este es tu primer ingreso.";
@@ -509,6 +522,31 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
                                 </table>
                             </div>
                         </CardContent>
+                        {totalPages > 1 && (
+        <div className="flex items-center justify-between p-4 border-t border-gray-200">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1 || isLoading}
+            >
+                <Icon name="ArrowLeft" size={14} className="mr-1" />
+                Anterior
+            </Button>
+            <span className="text-sm text-gray-600">
+                Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({totalOperations} operaciones)
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || isLoading}
+            >
+                Siguiente
+                <Icon name="ArrowRight" size={14} className="ml-1" />
+            </Button>
+        </div>
+    )}
                     </Card>
                 </div>
                 <aside className="lg:col-span-1 space-y-6">

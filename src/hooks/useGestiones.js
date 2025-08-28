@@ -219,11 +219,7 @@ export const useGestiones = () => {
     }, [withToken, operaciones]);
 
     const handleDeleteGestion = useCallback(async (gestionId, opId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta gestión?")) {
-            return;
-        }
-
-        // Actualización optimista: remover la gestión del estado local
+        
         const originalOperaciones = operaciones;
         setOperaciones(prevOps => prevOps.map(op => {
             if (op.id === opId) {
