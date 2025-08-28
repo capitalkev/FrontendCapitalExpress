@@ -151,7 +151,6 @@ const EstadisticasClave = ({ operations }) => {
     const verificadas = operations.filter(op => op.estado === 'Verificada').length;
     const rechazadas = operations.filter(op => op.estado === 'Rechazada').length;
     const totalGestionadas = verificadas + rechazadas;
-    const tasaAprobacion = totalGestionadas > 0 ? ((verificadas / totalGestionadas) * 100).toFixed(0) : 0;
 
     const stats = [
         { icon: "Clock", label: "Tiempo Prom. de Curse", value: "En Proceso", color: "text-blue-600" },
@@ -326,9 +325,9 @@ const ProcessTimeline = ({ steps, currentStep }) => (
     </div>
 );
 
-export default function Dashboard({ user, handleLogout, isAdmin = false }) {
+export default function Dashboard({ handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
-    const { currentUser, firebaseUser } = useAuth();
+    const { firebaseUser } = useAuth();
     const [operaciones, setOperaciones] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -337,6 +336,8 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [selectedOperation, setSelectedOperation] = useState(null);
+    const [operationDetails, setOperationDetails] = useState(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
     const [lastLogin, setLastLogin] = useState(null);
     const [showSummary, setShowSummary] = useState(true);
 
@@ -390,6 +391,42 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
         navigate('/new-operation');
     };
 
+    const fetchOperationDetails = async (operationId) => {
+        if (!firebaseUser) return;
+
+        try {
+            setLoadingDetails(true);
+            const token = await firebaseUser.getIdToken();
+            
+            const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones/${operationId}/detalle`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al cargar los detalles de la operación');
+            }
+            
+            const detailData = await response.json();
+            setOperationDetails(detailData);
+        } catch (error) {
+            console.error('Error fetching operation details:', error);
+            setError('Error al cargar los detalles de la operación');
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    const handleOpenOperationDetail = (operation) => {
+        setSelectedOperation(operation);
+        setOperationDetails(null); // Reset previous details
+        fetchOperationDetails(operation.id);
+    };
+
+    const handleCloseOperationDetail = () => {
+        setSelectedOperation(null);
+        setOperationDetails(null);
+    };
+
     const renderTableBody = () => {
         if (isLoading) return <tr><td colSpan="6" className="text-center py-16"><div className="flex justify-center items-center text-gray-500"><Icon name="Loader" className="animate-spin mr-3" size={24} />Cargando tus operaciones...</div></td></tr>;
         if (error) return <tr><td colSpan="6" className="text-center py-16 text-red-600"><Icon name="ServerCrash" size={32} className="mx-auto mb-2" /><p className="font-semibold">No se pudieron cargar los datos</p><p className="text-sm">{error}</p></td></tr>;
@@ -401,15 +438,10 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                 operation={op}
                 onActionMenuToggle={setOpenActionMenuId}
                 isActionMenuOpen={openActionMenuId === op.id}
-                setSelectedOperation={setSelectedOperation}
+                setSelectedOperation={handleOpenOperationDetail}
             />
         ));
     };
-    const logros = [
-        { emoji: '�', titulo: 'Maestro de la Meta', descripcion: 'Superaste tu meta en Mayo.', colorClass: 'bg-yellow-100 text-yellow-600' },
-        { emoji: '🚀', titulo: 'Impulso Inicial', descripcion: 'Registraste 5 operaciones esta semana.', colorClass: 'bg-blue-100 text-blue-600' },
-        { emoji: '⚡', titulo: 'Racha de Verificaciones', descripcion: 'Verificaste 3 operaciones seguidas.', colorClass: 'bg-green-100 text-green-600' }
-    ];
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -486,8 +518,13 @@ export default function Dashboard({ user, handleLogout, isAdmin = false }) {
                 </aside>
             </main>
             
-            <Modal isOpen={!!selectedOperation} onClose={() => setSelectedOperation(null)} title={`Detalle Operación: ${selectedOperation?.id}`}>
-                {selectedOperation && <OperationDetailModalContent operation={selectedOperation} />}
+            <Modal isOpen={!!selectedOperation} onClose={handleCloseOperationDetail} title={`Detalle Operación: ${selectedOperation?.id}`}>
+                {selectedOperation && (
+                    <OperationDetailModalContent 
+                        operation={operationDetails || selectedOperation}
+                        isLoading={loadingDetails}
+                    />
+                )}
             </Modal>
         </div>
     );
@@ -592,7 +629,7 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
                     {currentStatus.text}
                 </Badge>
             </td>
-            {/*
+            
             <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Button ref={buttonRef} variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-200" onClick={handleMenuToggle}>
                     <Icon name="MoreHorizontal" size={20}/>
@@ -609,31 +646,102 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
                     </ActionMenuPortal>
                 )}
             </td>
-            */}
+            
             
         </tr>
     );
 });
 
+// --- Componente para mostrar historial de gestiones ---
+const HistorialGestiones = ({ gestiones }) => {
+    return (
+        <div className="space-y-3">
+            <h5 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Icon name="Phone" size={16} />
+                Historial de Gestiones ({gestiones?.length || 0})
+            </h5>
+            {gestiones && gestiones.length > 0 ? (
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                    {gestiones.map((g, i) => (
+                        <div key={g.id || i} className="text-xs p-3 bg-gray-50 rounded-md border border-gray-200">
+                            <div className="flex justify-between items-start mb-1">
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-800">
+                                        {g.tipo}: <span className="font-normal text-gray-600">{g.resultado}</span>
+                                    </p>
+                                    {(g.nombreContacto || g.nombre_contacto) && (
+                                        <p className="text-gray-600 text-xs">
+                                            Contacto: {g.nombreContacto || g.nombre_contacto} {(g.cargoContacto || g.cargo_contacto) && `(${g.cargoContacto || g.cargo_contacto})`}
+                                        </p>
+                                    )}
+                                    {(g.telefonoEmailContacto || g.telefono_email_contacto) && (
+                                        <p className="text-gray-600 text-xs">
+                                            {g.telefonoEmailContacto || g.telefono_email_contacto}
+                                        </p>
+                                    )}
+                                    <p className="text-gray-500 italic mt-1">"{g.notas}"</p>
+                                    <div className="flex justify-between items-center mt-2">
+                                        <span className="text-gray-600 font-medium">{g.analista}</span>
+                                        <span className="text-gray-400">{new Date(g.fecha).toLocaleString('es-ES')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-4">
+                    <Icon name="MessageSquare" className="mx-auto mb-2 text-gray-400" size={24} />
+                    <p className="text-xs text-gray-500 italic">No hay gestiones manuales registradas.</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // --- Componente para el contenido del Modal de Detalles ---
-const OperationDetailModalContent = ({ operation }) => {
+const OperationDetailModalContent = ({ operation, isLoading }) => {
     const processSteps = ["Ingresada", "Verificando", "Cavali", "Cursada"];
-    const etapaActual = operation.etapaActual || "Ingresada";
+    const etapaActual = operation?.etapaActual || "Ingresada";
+
+    if (isLoading) {
+        return (
+            <div className="text-center py-12">
+                <Icon name="Loader" className="animate-spin mx-auto mb-4 text-blue-600" size={32} />
+                <p className="text-gray-500">Cargando detalles de la operación...</p>
+            </div>
+        );
+    }
+
+    if (!operation) {
+        return (
+            <div className="text-center py-12">
+                <Icon name="AlertCircle" className="mx-auto mb-4 text-red-600" size={32} />
+                <p className="text-red-500">Error: No se pudo cargar la información de la operación</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             <ProcessTimeline steps={processSteps} currentStep={etapaActual}/>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-6">
-                <p><strong className="text-gray-500 block">ID Operación:</strong> {operation.id}</p>
-                <p><strong className="text-gray-500 block">Fecha Ingreso:</strong> {new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { dateStyle: 'long' })}</p>
-                <p><strong className="text-gray-500 block">Cliente:</strong> {operation.cliente}</p>
-                <p><strong className="text-gray-500 block">Deudor:</strong> {operation.deudor || 'N/A'}</p>
+                <p><strong className="text-gray-500 block">ID Operación:</strong> {operation?.id || 'N/A'}</p>
+                <p><strong className="text-gray-500 block">Fecha Ingreso:</strong> {operation?.fechaIngreso ? new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { dateStyle: 'long' }) : 'N/A'}</p>
+                <p><strong className="text-gray-500 block">Cliente:</strong> {operation?.cliente || 'N/A'}</p>
+                <p><strong className="text-gray-500 block">Deudor:</strong> {operation?.deudor || 'N/A'}</p>
             </div>
+            
+            {/* Nueva sección para mostrar gestiones */}
+            <div className="pt-4 border-t border-gray-200">
+                <HistorialGestiones gestiones={operation?.gestiones || operation?.gestionesVerificacion} />
+            </div>
+            
             <div className="pt-4 border-t border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">Acciones Rápidas</h4>
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" iconName="Send" onClick={() => alert(`Simulando solicitud de verificación para ${operation.id}`)}>Solicitar Verificación</Button>
-                    <Button variant="outline" size="sm" iconName="MessageSquare" onClick={() => alert(`Simulando añadir nota para ${operation.id}`)}>Añadir Nota</Button>
+                    <Button variant="outline" size="sm" iconName="Send" onClick={() => alert(`Simulando solicitud de verificación para ${operation?.id || 'N/A'}`)}>Solicitar Verificación</Button>
+                    <Button variant="outline" size="sm" iconName="MessageSquare" onClick={() => alert(`Simulando añadir nota para ${operation?.id || 'N/A'}`)}>Añadir Nota</Button>
                 </div>
             </div>
         </div>

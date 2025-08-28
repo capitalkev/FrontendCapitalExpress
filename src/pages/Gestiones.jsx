@@ -40,6 +40,7 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     selectedOpToAssign,
     handleOpenAssignModal,
     handleConfirmAssignment,
+    handleDeleteGestion,
   } = useGestiones(user);
 
   const renderContent = () => {
@@ -92,6 +93,7 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
             onCompleteOperation={handleCompleteOperation}
             isAdmin={isAdmin}
             onAssignOperation={handleOpenAssignModal}
+            onDeleteGestion={handleDeleteGestion}
           />
         ))}
       </AnimatePresence>

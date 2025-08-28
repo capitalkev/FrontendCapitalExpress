@@ -11,8 +11,6 @@ import Gestiones from './pages/Gestiones';
 import { Icon } from './components/Icon';
 
 const ProtectedRoute = ({ children }) => {
-    // Este componente ahora solo necesita saber si hay un usuario logueado.
-    // La lógica de roles la manejaremos directamente en las rutas.
     const { currentUser } = useAuth();
     if (!currentUser) {
       return <Navigate to="/login" />;

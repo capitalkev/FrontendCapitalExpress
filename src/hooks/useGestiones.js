@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = 'https://orquestador-service-598125168090.southamerica-west1.run.app/api';
+const API_BASE_URL = '/api';
 
 export const useGestiones = () => {
     const { firebaseUser } = useAuth();
@@ -113,33 +113,45 @@ export const useGestiones = () => {
     }, [firebaseUser]);
 
     const handleSaveGestion = useCallback(async (opId, gestionData) => {
-        const displayName = firebaseUser?.displayName || 'Usuario';
-        const nuevaGestionLocal = {
-            ...gestionData,
-            fecha: new Date().toISOString(),
-            analista: displayName.split(' ')[0] || 'Tú',
-        };
+        console.log('Guardando gestión:', gestionData);
+        
+        // Primero guardar en el servidor para obtener el ID real
+        try {
+            await withToken(async (token) => {
+                const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/gestiones`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(gestionData),
+                });
+                
+                if (!response.ok) throw new Error('La sincronización con el servidor falló.');
+                
+                const savedGestion = await response.json();
+                console.log('Gestión guardada en servidor:', savedGestion);
+                
+                // Actualizar con los datos reales del servidor (incluyendo ID)
+                const displayName = firebaseUser?.displayName || 'Usuario';
+                const nuevaGestionLocal = {
+                    id: savedGestion.id,
+                    ...gestionData,
+                    fecha: savedGestion.fecha_creacion || new Date().toISOString(),
+                    analista: displayName.split(' ')[0] || 'Tú',
+                };
+                
+                console.log('Agregando gestión local:', nuevaGestionLocal);
 
-        setOperaciones(prevOps => prevOps.map(op =>
-            op.id === opId ? { ...op, gestiones: [...op.gestiones, nuevaGestionLocal] } : op
-        ));
-        setActiveGestionId(null);
-        showPopup("¡Gestión guardada con éxito!");
-
-        withToken(async (token) => {
-            const response = await fetch(`${API_BASE_URL}/operaciones/${opId}/gestiones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(gestionData),
+                setOperaciones(prevOps => prevOps.map(op =>
+                    op.id === opId ? { ...op, gestiones: [...op.gestiones, nuevaGestionLocal] } : op
+                ));
+                
+                showPopup("¡Gestión guardada con éxito!");
             });
-            if (!response.ok) throw new Error('La sincronización con el servidor falló.');
-        }).catch(error => {
+        } catch (error) {
             console.error("Error al sincronizar la gestión:", error);
             setError("Falló al guardar la gestión. Por favor, recargue la página.");
-            setOperaciones(prevOps => prevOps.map(op =>
-                op.id === opId ? { ...op, gestiones: op.gestiones.slice(0, -1) } : op
-            ));
-        });
+        }
+        
+        setActiveGestionId(null);
     }, [withToken, firebaseUser]);
     
     const handleFacturaCheck = useCallback(async (opId, folio, nuevoEstado) => {
@@ -152,7 +164,7 @@ export const useGestiones = () => {
                 const todasVerificadas = nuevasFacturas.every(f => f.estado === 'Verificada');
                 let nuevoEstadoOp = 'En Verificación';
                 if (algunaRechazada) nuevoEstadoOp = 'Discrepancia';
-                else if (todasVerificadas) nuevoEstadoOp = 'Conforme';
+                else if (todasVerificadas) nuevoEstadoOp = 'pendiente';
                 
                 return { ...op, facturas: nuevasFacturas, estadoOperacion: nuevoEstadoOp };
             }
@@ -206,6 +218,40 @@ export const useGestiones = () => {
         });
     }, [withToken, operaciones]);
 
+    const handleDeleteGestion = useCallback(async (gestionId, opId) => {
+        if (!confirm("¿Estás seguro de que quieres eliminar esta gestión?")) {
+            return;
+        }
+
+        // Actualización optimista: remover la gestión del estado local
+        const originalOperaciones = operaciones;
+        setOperaciones(prevOps => prevOps.map(op => {
+            if (op.id === opId) {
+                return {
+                    ...op,
+                    gestiones: op.gestiones.filter(g => g.id !== gestionId)
+                };
+            }
+            return op;
+        }));
+
+        showPopup("Gestión eliminada con éxito!");
+
+        // Llamada al backend
+        withToken(async (token) => {
+            const response = await fetch(`${API_BASE_URL}/gestiones/${gestionId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('No se pudo eliminar la gestión.');
+        }).catch(error => {
+            console.error("Error al eliminar la gestión:", error);
+            setError("No se pudo eliminar la gestión. Se ha restaurado.");
+            // Restaurar el estado original en caso de error
+            setOperaciones(originalOperaciones);
+        });
+    }, [withToken, operaciones]);
+
     const handleOpenAssignModal = (operation) => {
         setSelectedOpToAssign(operation);
         setIsAssignModalOpen(true);
@@ -250,6 +296,7 @@ export const useGestiones = () => {
         handleConfirmAdelanto,
         handleCompleteOperation,
         handleOpenAssignModal,
-        handleConfirmAssignment
+        handleConfirmAssignment,
+        handleDeleteGestion
     };
 };

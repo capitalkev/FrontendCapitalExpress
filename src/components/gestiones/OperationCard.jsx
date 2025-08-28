@@ -15,6 +15,7 @@ export const OperationCard = React.memo(
     onOpenAdelantoModal,
     onCompleteOperation,
     onAssignOperation,
+    onDeleteGestion,
     isAdmin,
   }) => {
     const isGestionOpen = activeGestionId === operation.id;
@@ -162,6 +163,7 @@ export const OperationCard = React.memo(
               onSaveGestion={onSaveGestion}
               onFacturaCheck={onFacturaCheck}
               onOpenAdelantoModal={onOpenAdelantoModal}
+              onDeleteGestion={onDeleteGestion}
               onCancel={() => setActiveGestionId(null)}
             />
           )}

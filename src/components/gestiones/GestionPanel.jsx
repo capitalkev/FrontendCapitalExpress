@@ -66,8 +66,12 @@ const FacturaChecklist = ({ facturas, onCheck }) => {
                     <div key={factura.folio} className={`p-2 rounded-md border flex items-center justify-between transition-colors ${factura.estado === 'Verificada' ? 'bg-green-50 border-green-200' : factura.estado === 'Rechazada' ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
                         <span className="text-sm text-gray-700">{factura.folio} - {new Intl.NumberFormat('es-PE', { style: 'currency', currency: factura.moneda }).format(factura.monto)}</span>
                          <div className="flex items-center gap-1">
-                             <button onClick={() => onCheck(factura.folio, 'Rechazada')} title="Rechazar Factura" className="h-6 w-6 rounded-full hover:bg-red-200 text-red-500 flex items-center justify-center"><Icon name="X" size={14}/></button>
-                             <button onClick={() => onCheck(factura.folio, 'Verificada')} title="Verificar Factura" className="h-6 w-6 rounded-full hover:bg-green-200 text-green-500 flex items-center justify-center"><Icon name="Check" size={14}/></button>
+                             {/* Botón para desmarcar (NUEVO) */}
+                            <button onClick={() => onCheck(factura.folio, 'En Verificación')} title="Desmarcar Estado" className="h-6 w-6 rounded-full hover:bg-gray-200 text-gray-500 flex items-center justify-center">
+                                <Icon name="RotateCcw" size={14}/>
+                            </button>
+                            <button onClick={() => onCheck(factura.folio, 'Rechazada')} title="Rechazar Factura" className="h-6 w-6 rounded-full hover:bg-red-200 text-red-500 flex items-center justify-center"><Icon name="X" size={14}/></button>
+                            <button onClick={() => onCheck(factura.folio, 'Verificada')} title="Verificar Factura" className="h-6 w-6 rounded-full hover:bg-green-200 text-green-500 flex items-center justify-center"><Icon name="Check" size={14}/></button>
                          </div>
                     </div>
                 ))}
@@ -76,22 +80,48 @@ const FacturaChecklist = ({ facturas, onCheck }) => {
     );
 };
 
-const HistorialGestiones = ({ gestiones }) => (
-    <div className="space-y-3">
-        <h5 className="text-sm font-semibold text-gray-700">Historial de Gestiones</h5>
-        {gestiones.length > 0 ? (
-            <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
-                {gestiones.map((g, i) => (
-                    <div key={i} className="text-xs p-2 bg-gray-100 rounded-md border border-gray-200">
-                        <p className="font-semibold">{g.tipo}: <span className="font-normal text-gray-600">{g.resultado}</span></p>
-                        <p className="text-gray-500 italic">"{g.notas}" - {g.analista}</p>
-                        <p className="text-right text-gray-400">{new Date(g.fecha).toLocaleString('es-ES')}</p>
-                    </div>
-                ))}
-            </div>
-        ) : <p className="text-xs text-gray-500 italic">No hay gestiones manuales registradas.</p>}
-    </div>
-);
+const HistorialGestiones = ({ gestiones, operation, onDeleteGestion }) => {
+    console.log('=== HISTORIAL DEBUG ===');
+    console.log('Gestiones:', gestiones);
+    gestiones.forEach((g, i) => {
+        console.log(`Gestión ${i}:`, { id: g.id, tipo: g.tipo, hasId: !!g.id });
+    });
+    console.log('=== FIN HISTORIAL DEBUG ===');
+    
+    return (
+        <div className="space-y-3">
+            <h5 className="text-sm font-semibold text-gray-700">Historial de Gestiones</h5>
+            {gestiones.length > 0 ? (
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                    {gestiones.map((g, i) => (
+                            <div key={i} className="text-xs p-2 bg-gray-100 rounded-md border border-gray-200 group hover:bg-gray-200">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <p className="font-semibold">{g.tipo}: <span className="font-normal text-gray-600">{g.resultado}</span></p>
+                                        <p className="text-gray-500 italic">"{g.notas}" - {g.analista}</p>
+                                        <p className="text-right text-gray-400">{new Date(g.fecha).toLocaleString('es-ES')}</p>
+                                    </div>
+                                    {g.id ? (
+                                        <button
+                                            onClick={() => onDeleteGestion(g.id, operation.id)}
+                                            className="ml-2 bg-red-500 text-white p-1 rounded text-xs"
+                                            title="Eliminar gestión"
+                                        >
+                                            <Icon name="Trash2" size={12} />
+                                        </button>
+                                    ) : (
+                                        <span className="ml-2 bg-gray-300 text-gray-600 p-1 rounded text-xs">
+                                            Sin ID
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                    ))}
+                </div>
+            ) : <p className="text-xs text-gray-500 italic">No hay gestiones manuales registradas.</p>}
+        </div>
+    );
+};
 
 const ContactoInteligente = ({ deudor }) => (
     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg h-full flex flex-col justify-center">
@@ -114,6 +144,7 @@ export const GestionPanel = ({
     onSaveGestion,
     onFacturaCheck,
     onOpenAdelantoModal,
+    onDeleteGestion,
     onCancel
 }) => {
     return (
@@ -139,7 +170,7 @@ export const GestionPanel = ({
                         <FacturaChecklist facturas={operation.facturas} onCheck={(folio, estado) => onFacturaCheck(operation.id, folio, estado)} />
                     </TabsContent>
                     <TabsContent value="historial">
-                        <HistorialGestiones gestiones={operation.gestiones} />
+                        <HistorialGestiones gestiones={operation.gestiones} operation={operation} onDeleteGestion={onDeleteGestion} />
                     </TabsContent>
                      <TabsContent value="ia">
                         <ContactoInteligente deudor={operation.deudor}/>
