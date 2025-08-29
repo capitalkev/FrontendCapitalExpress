@@ -19,6 +19,9 @@ export const useGestiones = () => {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedOpToAssign, setSelectedOpToAssign] = useState(null);
     const [analysts, setAnalysts] = useState([]);
+    
+    const [isRequestVerificationModalOpen, setIsRequestVerificationModalOpen] = useState(false);
+    const [selectedVerificationOp, setSelectedVerificationOp] = useState(null);
 
     const fetchOperaciones = useCallback(async () => {
         if (!firebaseUser) {
@@ -264,6 +267,39 @@ export const useGestiones = () => {
         }).catch(() => setError("No se pudo asignar la operación."));
     };
 
+    const handleOpenRequestVerificationModal = (operation) => {
+        console.log('🔥 handleOpenRequestVerificationModal called with:', operation);
+        setSelectedVerificationOp(operation);
+        setIsRequestVerificationModalOpen(true);
+        console.log('Modal state should be open now');
+    };
+
+    const handleSendVerificationEmails = useCallback(async ({ operationId, emails, customMessage }) => {
+        return await withToken(async (token) => {
+            const response = await fetch(`${API_BASE_URL}/operaciones/${operationId}/send-verification`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ 
+                    emails: emails,
+                    customMessage: customMessage
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Error al enviar correos de verificación');
+            }
+            
+            const result = await response.json();
+            showPopup("Correos de verificación enviados exitosamente.");
+            setIsRequestVerificationModalOpen(false);
+            return result;
+        });
+    }, [withToken]);
+
     // Devolvemos el estado y las funciones que los componentes necesitan
     return {
         isLoading,
@@ -282,6 +318,9 @@ export const useGestiones = () => {
         isAssignModalOpen,
         setIsAssignModalOpen,
         selectedOpToAssign,
+        isRequestVerificationModalOpen,
+        setIsRequestVerificationModalOpen,
+        selectedVerificationOp,
         handleSaveGestion,
         handleFacturaCheck,
         handleOpenAdelantoModal,
@@ -289,6 +328,8 @@ export const useGestiones = () => {
         handleCompleteOperation,
         handleOpenAssignModal,
         handleConfirmAssignment,
-        handleDeleteGestion
+        handleDeleteGestion,
+        handleOpenRequestVerificationModal,
+        handleSendVerificationEmails
     };
 };

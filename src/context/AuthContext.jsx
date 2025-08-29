@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
                 setFirebaseUser(user);
                 try {
                     const token = await user.getIdToken();
-                    const response = await fetch('https://orquestador-service-598125168090.southamerica-west1.run.app/api/users/me', {
+                    const response = await fetch('http://127.0.0.1:8000/api/users/me', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 

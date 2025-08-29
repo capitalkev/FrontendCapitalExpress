@@ -16,6 +16,7 @@ export const OperationCard = React.memo(
     onCompleteOperation,
     onAssignOperation,
     onDeleteGestion,
+    onRequestVerification,
     isAdmin,
   }) => {
     const isGestionOpen = activeGestionId === operation.id;
@@ -117,23 +118,45 @@ export const OperationCard = React.memo(
               
             </div>
             
-            <div className="col-span-12 md:col-span-2 flex justify-start md:justify-end text-white gap-2">
+            <div className="col-span-12 md:col-span-2 flex flex-col md:flex-row justify-start md:justify-end gap-2">
                {/* --- BOTÓN DE ASIGNAR (SOLO PARA ADMINS) --- */}
               {isAdmin && !isConforme && (
-                
                 <Button
                   variant="outline"
-                  className="w-full md:w-auto"
+                  className="w-full md:w-auto text-gray-800"
                   onClick={() => onAssignOperation(operation)}
                 >
                   <Icon name="UserCog" size={18} /> Asignar
                 </Button>
               )}
 
+              {/* --- BOTÓN SOLICITAR VERIFICACIÓN --- */}
+              {operation.estadoOperacion !== "Completada" && operation.estadoOperacion !== "Verificada" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full md:w-auto border-orange-500 text-orange-600 hover:bg-orange-50 cursor-pointer relative z-10 pointer-events-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🔥 SOLICITAR VERIFICACIÓN CLICKED!');
+                    console.log('Operation:', operation);
+                    console.log('onRequestVerification function:', onRequestVerification);
+                    if (onRequestVerification) {
+                      console.log('Calling onRequestVerification...');
+                      onRequestVerification(operation);
+                    } else {
+                      console.error('onRequestVerification is undefined!');
+                    }
+                  }}
+                >
+                  <Icon name="Mail" size={16} /> Solicitar Verificación
+                </Button>
+              )}
+
               {isConforme ? (
                 <Button
                   variant="success"
-                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => onCompleteOperation(operation.id)}
                 >
                   <Icon name="CheckCheck" size={18} /> Completar
@@ -141,7 +164,7 @@ export const OperationCard = React.memo(
               ) : (
                 <Button
                   variant="secondary"
-                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
+                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() =>
                     setActiveGestionId(isGestionOpen ? null : operation.id)
                   }

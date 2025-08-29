@@ -14,10 +14,11 @@ import { OperationCard } from "../components/gestiones/OperationCard";
 import { DashboardSidebar } from "../components/gestiones/DashboardSidebar";
 import { Header } from "../components/gestiones/Header";
 import { AdelantoExpressModal } from "../components/gestiones/AdelantoExpressModal";
-
+import { RequestVerificationModal } from "../components/gestiones/RequestVerificationModal";
 import { AssignOperationModal } from "../components/gestiones/AssignOperationModal";
 
 export default function Gestiones({ user, handleLogout, isAdmin = false }) {
+  console.log('🔥 Gestiones component render');
   const {
     isLoading,
     error,
@@ -41,7 +42,18 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     handleOpenAssignModal,
     handleConfirmAssignment,
     handleDeleteGestion,
+    isRequestVerificationModalOpen,
+    setIsRequestVerificationModalOpen,
+    selectedVerificationOp,
+    handleOpenRequestVerificationModal,
+    handleSendVerificationEmails,
   } = useGestiones(user);
+  
+  console.log('🔥 Modal states:', {
+    isRequestVerificationModalOpen,
+    selectedVerificationOp,
+    handleOpenRequestVerificationModal
+  });
 
   const renderContent = () => {
     if (isLoading) {
@@ -81,7 +93,6 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
     return (
       <AnimatePresence>
         {filteredData.map((op) => (
-          // --- 3. Pasar los nuevos props a OperationCard ---
           <OperationCard
             key={op.id}
             operation={op}
@@ -94,6 +105,7 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
             isAdmin={isAdmin}
             onAssignOperation={handleOpenAssignModal}
             onDeleteGestion={handleDeleteGestion}
+            onRequestVerification={handleOpenRequestVerificationModal}
           />
         ))}
       </AnimatePresence>
@@ -143,7 +155,13 @@ export default function Gestiones({ user, handleLogout, isAdmin = false }) {
         operation={selectedAdelantoOp}
       />
 
-      {/* --- 4. Renderizar el nuevo modal de asignación --- */}
+      <RequestVerificationModal
+        isOpen={isRequestVerificationModalOpen}
+        onClose={() => setIsRequestVerificationModalOpen(false)}
+        operation={selectedVerificationOp}
+        onSendEmails={handleSendVerificationEmails}
+      />
+
       <AssignOperationModal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}

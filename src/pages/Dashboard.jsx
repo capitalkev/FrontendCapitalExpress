@@ -355,7 +355,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
             try {
                 const token = await firebaseUser.getIdToken();
                 
-                const url = `https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones?page=${pageToFetch}&limit=${PAGE_SIZE}`;
+                const url = `http://127.0.0.1:8000/api/operaciones?page=${pageToFetch}&limit=${PAGE_SIZE}`;
 
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -411,7 +411,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
             setLoadingDetails(true);
             const token = await firebaseUser.getIdToken();
             
-            const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones/${operationId}/detalle`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/operaciones/${operationId}/detalle`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
@@ -431,7 +431,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
 
     const handleOpenOperationDetail = (operation) => {
         setSelectedOperation(operation);
-        setOperationDetails(null); // Reset previous details
+        setOperationDetails(null);
         fetchOperationDetails(operation.id);
     };
 
