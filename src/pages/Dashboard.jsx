@@ -4,6 +4,7 @@ import * as LucideIcons from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatInPeruTimeZone } from '../utils/dateFormatter';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 // --- Componente Envoltorio para Iconos (Wrapper) ---
 const Icon = ({ name, size = 16, ...props }) => {
@@ -325,7 +326,174 @@ const ProcessTimeline = ({ steps, currentStep }) => (
     </div>
 );
 
-    
+// Modal simple para solicitar verificación
+const SimpleVerificationModal = ({ operation, onClose, onSendEmails }) => {
+    const [emailList, setEmailList] = useState([""]);
+    const [customMessage, setCustomMessage] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const addEmailField = () => {
+        setEmailList([...emailList, ""]);
+    };
+
+    const removeEmailField = (index) => {
+        if (emailList.length > 1) {
+            setEmailList(emailList.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateEmail = (index, value) => {
+        const updatedEmails = emailList.map((email, i) => i === index ? value : email);
+        setEmailList(updatedEmails);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        const validEmails = emailList.filter(email => email.trim());
+        
+        if (validEmails.length === 0) {
+            alert("Por favor ingresa al menos un correo electrónico válido");
+            return;
+        }
+
+        setIsLoading(true);
+        
+        try {
+            await onSendEmails({
+                operationId: operation.id,
+                emails: validEmails.join("; "),
+                customMessage: customMessage.trim() || undefined
+            });
+            
+            setEmailList([""]);
+            setCustomMessage("");
+            onClose();
+        } catch (error) {
+            console.error("Error sending verification emails:", error);
+            alert("Error al enviar los correos. Por favor intenta nuevamente.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <Icon name="Mail" size={24} className="text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-900">Solicitar Verificación</h3>
+                            <p className="text-sm text-gray-500">Operación #{operation?.id} - {operation?.cliente}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} disabled={isLoading} className="p-1 hover:bg-gray-100 rounded">
+                        <Icon name="X" size={20} />
+                    </button>
+                </div>
+                
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            Correos Electrónicos *
+                        </label>
+                        <div className="space-y-3">
+                            {emailList.map((email, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <input
+                                        type="email"
+                                        placeholder="ejemplo@empresa.com"
+                                        value={email}
+                                        onChange={(e) => updateEmail(index, e.target.value)}
+                                        disabled={isLoading}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    {emailList.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeEmailField(index)}
+                                            disabled={isLoading}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                            title="Eliminar correo"
+                                        >
+                                            <Icon name="Minus" size={16} />
+                                        </button>
+                                    )}
+                                    {index === emailList.length - 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={addEmailField}
+                                            disabled={isLoading}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                            title="Agregar otro correo"
+                                        >
+                                            <Icon name="Plus" size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                            Haz click en <Icon name="Plus" size={12} className="inline mx-1" /> para agregar más correos
+                        </p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                            Información de la Operación:
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="text-gray-500">Cliente:</span>
+                                <p className="font-medium">{operation?.cliente}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Monto:</span>
+                                <p className="font-medium">
+                                    {operation?.moneda} {operation?.monto?.toLocaleString('es-PE', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isLoading}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isLoading || !emailList.some(email => email.trim())}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 min-w-[120px]"
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <Icon name="Loader" size={16} className="animate-spin" />
+                                    Enviando...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Icon name="Send" size={16} />
+                                    Enviar Correos
+                                </div>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 export default function Dashboard({ handleLogout, isAdmin = false }) {
     const navigate = useNavigate();
@@ -347,15 +515,23 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
     const [totalPages, setTotalPages] = useState(0);
     const [totalOperations, setTotalOperations] = useState(0);
     const PAGE_SIZE = 20;
+    
+    // Estados para modal de solicitar verificación
+    const [isRequestVerificationModalOpen, setIsRequestVerificationModalOpen] = useState(false);
+    const [selectedVerificationOp, setSelectedVerificationOp] = useState(null);
     useEffect(() => {
-        const fetchOperaciones = async (pageToFetch) => {
+        const fetchOperaciones = async (pageToFetch, filterToApply) => {
             if (!firebaseUser) return;
 
             setIsLoading(true);
             try {
                 const token = await firebaseUser.getIdToken();
                 
-                const url = `http://127.0.0.1:8000/api/operaciones?page=${pageToFetch}&limit=${PAGE_SIZE}`;
+                // Build URL with filter parameter if not "Todas"
+                let url = `https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones?page=${pageToFetch}&limit=${PAGE_SIZE}`;
+                if (filterToApply && filterToApply !== 'Todas') {
+                    url += `&estado=${encodeURIComponent(filterToApply)}`;
+                }
 
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -378,8 +554,8 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
             }
         };
 
-        fetchOperaciones(currentPage);
-    }, [firebaseUser, currentPage]);
+        fetchOperaciones(currentPage, activeFilter);
+    }, [firebaseUser, currentPage, activeFilter]);
 
     const formatLastLogin = (dateString) => {
         if (!dateString) return "Este es tu primer ingreso.";
@@ -387,10 +563,8 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
         return `Tu último ingreso fue el ${date.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })} a las ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
     };
 
-    const filteredData = useMemo(() => {
-        if (activeFilter === 'Todas') return operaciones;
-        return operaciones.filter(op => op.estado === activeFilter);
-    }, [activeFilter, operaciones]);
+    // Now we don't need frontend filtering since backend handles it
+    const filteredData = operaciones;
     
     const kpis = useMemo(() => ({
             colocacionMensual: operaciones.filter(op => op.estado === "Verificada").reduce((sum, op) => sum + (op.moneda === "PEN" ? op.monto : op.monto * 3.75), 0),
@@ -404,6 +578,11 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
         navigate('/new-operation');
     };
 
+    const handleFilterChange = (newFilter) => {
+        setActiveFilter(newFilter);
+        setCurrentPage(1); // Reset to page 1 when filter changes
+    };
+
     const fetchOperationDetails = async (operationId) => {
         if (!firebaseUser) return;
 
@@ -411,7 +590,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
             setLoadingDetails(true);
             const token = await firebaseUser.getIdToken();
             
-            const response = await fetch(`http://127.0.0.1:8000/api/operaciones/${operationId}/detalle`, {
+            const response = await fetch(`https://orquestador-service-598125168090.southamerica-west1.run.app/api/operaciones/${operationId}/detalle`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
@@ -440,6 +619,48 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
         setOperationDetails(null);
     };
 
+    const handleOpenRequestVerificationModal = (operation) => {
+        console.log('🔥 Opening verification modal for operation:', operation);
+        setSelectedVerificationOp(operation);
+        setIsRequestVerificationModalOpen(true);
+    };
+
+    const handleSendVerificationEmails = async ({ operationId, emails, customMessage }) => {
+        if (!firebaseUser) {
+            throw new Error("Usuario no autenticado");
+        }
+        
+        try {
+            const token = await firebaseUser.getIdToken();
+            const response = await fetch(`${API_BASE_URL}/operaciones/${operationId}/send-verification`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ 
+                    emails: emails,
+                    customMessage: customMessage
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Error al enviar correos de verificación');
+            }
+            
+            const result = await response.json();
+            setIsRequestVerificationModalOpen(false);
+            
+            alert('Correos de verificación enviados exitosamente');
+            
+            return result;
+        } catch (error) {
+            console.error('Error sending verification emails:', error);
+            throw error;
+        }
+    };
+
     const renderTableBody = () => {
         if (isLoading) return <tr><td colSpan="6" className="text-center py-16"><div className="flex justify-center items-center text-gray-500"><Icon name="Loader" className="animate-spin mr-3" size={24} />Cargando tus operaciones...</div></td></tr>;
         if (error) return <tr><td colSpan="6" className="text-center py-16 text-red-600"><Icon name="ServerCrash" size={32} className="mx-auto mb-2" /><p className="font-semibold">No se pudieron cargar los datos</p><p className="text-sm">{error}</p></td></tr>;
@@ -452,6 +673,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
                 onActionMenuToggle={setOpenActionMenuId}
                 isActionMenuOpen={openActionMenuId === op.id}
                 setSelectedOperation={handleOpenOperationDetail}
+                onRequestVerification={handleOpenRequestVerificationModal}
             />
         ));
     };
@@ -499,7 +721,7 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
                             </div>
                             <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
                                 {filterOptions.map(option => (
-                                   <Button key={option} variant={activeFilter === option ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(option)}>{option}</Button>
+                                   <Button key={option} variant={activeFilter === option ? 'default' : 'outline'} size="sm" onClick={() => handleFilterChange(option)}>{option}</Button>
                                 ))}
                             </div>
                         </CardHeader>
@@ -561,9 +783,19 @@ export default function Dashboard({ handleLogout, isAdmin = false }) {
                     <OperationDetailModalContent 
                         operation={operationDetails || selectedOperation}
                         isLoading={loadingDetails}
+                        onRequestVerification={handleOpenRequestVerificationModal}
                     />
                 )}
             </Modal>
+            
+            {/* Modal de Solicitar Verificación */}
+            {isRequestVerificationModalOpen && selectedVerificationOp && (
+                <SimpleVerificationModal 
+                    operation={selectedVerificationOp}
+                    onClose={() => setIsRequestVerificationModalOpen(false)}
+                    onSendEmails={handleSendVerificationEmails}
+                />
+            )}
         </div>
     );
 }
@@ -598,7 +830,7 @@ const ActionMenuPortal = ({ children, onClose, menuPosition }) => {
     );
 };
 
-const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation }) => {
+const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOpen, setSelectedOperation, onRequestVerification }) => {
     const statusMap = { "En Verificación": { variant: 'warning', icon: 'Clock', text: 'En Verificación' }, "Verificada": { variant: 'success', icon: 'CheckCircle', text: 'Verificada' }, "Rechazada": { variant: 'error', icon: 'XCircle', text: 'Rechazada' }};
     const currentStatus = statusMap[operation.estado] || { variant: 'neutral', icon: 'HelpCircle', text: operation.estado };
 
@@ -677,7 +909,7 @@ const OperationRow = React.memo(({ operation, onActionMenuToggle, isActionMenuOp
                         <div className="w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
                             <div className="py-1" role="menu">
                                 <button onClick={() => { setSelectedOperation(operation); onActionMenuToggle(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Eye" size={16}/> Ver Detalle Completo</button>
-                                <button className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Send" size={16}/> Solicitar Verificación</button>
+                                <button onClick={() => { onRequestVerification && onRequestVerification(operation); onActionMenuToggle(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"><Icon name="Send" size={16}/> Solicitar Verificación</button>
                                 <button className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-700 hover:bg-red-50" role="menuitem"><Icon name="Trash2" size={16}/> Solicitar Anulación</button>
                             </div>
                         </div>
@@ -738,7 +970,7 @@ const HistorialGestiones = ({ gestiones }) => {
 };
 
 // --- Componente para el contenido del Modal de Detalles ---
-const OperationDetailModalContent = ({ operation, isLoading }) => {
+const OperationDetailModalContent = ({ operation, isLoading, onRequestVerification }) => {
     const processSteps = ["Ingresada", "Verificando", "Cavali", "Cursada"];
     const etapaActual = operation?.etapaActual || "Ingresada";
 
@@ -768,6 +1000,8 @@ const OperationDetailModalContent = ({ operation, isLoading }) => {
                 <p><strong className="text-gray-500 block">Fecha Ingreso:</strong> {operation?.fechaIngreso ? new Date(operation.fechaIngreso).toLocaleDateString('es-ES', { dateStyle: 'long' }) : 'N/A'}</p>
                 <p><strong className="text-gray-500 block">Cliente:</strong> {operation?.cliente || 'N/A'}</p>
                 <p><strong className="text-gray-500 block">Deudor:</strong> {operation?.deudor || 'N/A'}</p>
+                <p><strong className="text-gray-500 block">Tasa:</strong> {operation?.tasa || 'N/A'}</p>
+                <p><strong className="text-gray-500 block">Comisión:</strong> {operation?.comision || 'N/A'}</p>
             </div>
             
             {/* Nueva sección para mostrar gestiones */}
@@ -778,10 +1012,13 @@ const OperationDetailModalContent = ({ operation, isLoading }) => {
             <div className="pt-4 border-t border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">Acciones Rápidas</h4>
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" iconName="Send" onClick={() => alert(`Simulando solicitud de verificación para ${operation?.id || 'N/A'}`)}>Solicitar Verificación</Button>
+                    <Button variant="outline" size="sm" iconName="Send" onClick={() => onRequestVerification && onRequestVerification(operation)}>Solicitar Verificación</Button>
                     <Button variant="outline" size="sm" iconName="MessageSquare" onClick={() => alert(`Simulando añadir nota para ${operation?.id || 'N/A'}`)}>Añadir Nota</Button>
                 </div>
             </div>
         </div>
     );
 };
+
+
+

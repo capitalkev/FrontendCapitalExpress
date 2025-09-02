@@ -130,28 +130,6 @@ export const OperationCard = React.memo(
                 </Button>
               )}
 
-              {/* --- BOTÓN SOLICITAR VERIFICACIÓN --- */}
-              {operation.estadoOperacion !== "Completada" && operation.estadoOperacion !== "Verificada" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full md:w-auto border-orange-500 text-orange-600 hover:bg-orange-50 cursor-pointer relative z-10 pointer-events-auto"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('🔥 SOLICITAR VERIFICACIÓN CLICKED!');
-                    console.log('Operation:', operation);
-                    console.log('onRequestVerification function:', onRequestVerification);
-                    if (onRequestVerification) {
-                      console.log('Calling onRequestVerification...');
-                      onRequestVerification(operation);
-                    } else {
-                      console.error('onRequestVerification is undefined!');
-                    }
-                  }}
-                >
-                  <Icon name="Mail" size={16} /> Solicitar Verificación
-                </Button>
-              )}
 
               {isConforme ? (
                 <Button
